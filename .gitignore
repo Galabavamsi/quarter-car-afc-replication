@@ -1,0 +1,24 @@
+# Licensed source paper; cite its DOI instead of republishing the PDF.
+Active_Suspension_Control_of_Quarter-Car_System_With_Experimental_Validation.pdf
+
+# Local drafts, cached models, and temporary inspection renders.
+QuarterCar_AFC_Replication_Report.tex
+README_replication.md
+replication_figures/
+paper_assets/simulink_controller_view.png
+paper_assets/simulink_plant_view.png
+report-build/
+slprj/
+tmp/
+*.slxc
+*.asv
+
+# LaTeX build intermediates (final PDFs remain tracked).
+*.aux
+*.log
+*.out
+*.toc
+*.nav
+*.snm
+*.vrb
+*.synctex.gz
