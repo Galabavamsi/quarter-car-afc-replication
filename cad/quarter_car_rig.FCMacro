@@ -1,0 +1,165 @@
+# -*- coding: utf-8 -*-
+"""Parametric FreeCAD model of a quarter-car active-suspension test rig.
+
+Laid out after Na et al. (2022), Fig. 1: a frame with two guide columns, a
+pneumatic cylinder that lifts the road platform, a tyre on an unsprung
+carrier, the sprung mass (vehicle body) on linear guides, a coil-over
+spring/damper and the electro-hydraulic actuator with its servo valve,
+plus the displacement transducer and accelerometer the paper uses.
+
+Dimensions are illustrative (the paper gives none); every one is a named
+parameter below. Units: millimetres.
+
+Run in FreeCAD: Macro -> Macros... -> select this file -> Execute.
+Outputs (next to this file, folder "export/"):
+    quarter_car_rig.step   full assembly
+    <part>.stl             one mesh per part (used by the Blender scene and
+                           the Simscape Multibody model)
+"""
+import os
+import FreeCAD as App
+import Part
+
+try:
+    import Mesh
+except ImportError:      # very old builds
+    Mesh = None
+try:
+    import Import
+except ImportError:
+    Import = None
+
+V = App.Vector
+HERE = os.path.dirname(os.path.abspath(__file__)) if "__file__" in globals() else App.getUserMacroDir(True)
+OUT = os.path.join(HERE, "export")
+
+# ---------------------------------------------------------------- parameters
+P = dict(
+    base_l=1000, base_w=640, base_t=30,          # base plate
+    col=60, col_x=440, col_h=1550,               # square guide columns
+    beam_h=70,                                   # top cross beam height
+    pneu_r=75, pneu_h=300, rod_r=22,             # pneumatic road cylinder
+    plat_l=420, plat_w=320, plat_t=25,           # road platform
+    tyre_R=230, tyre_r=70, rim_r=150, rim_w=130,  # tyre (torus) and rim
+    carrier_l=820, carrier_w=110, carrier_t=60,  # unsprung carrier (axle beam)
+    slider=90,                                   # linear-guide carriages
+    body_l=860, body_w=420, body_t=130, gap=330,  # sprung mass and strut length
+    strut_x=360,                                 # strut offset from wheel centre
+    spr_R=58, spr_wire=9, spr_pitch=44,          # coil spring
+    dmp_r=24, act_r=42, act_rod=15,              # damper and hydraulic cylinder
+    valve=(95, 75, 65),                          # servo-valve block
+    lvdt_r=13, acc=34,                           # sensors
+)
+
+COLOURS = {
+    "Frame": (0.55, 0.58, 0.62), "Base": (0.35, 0.37, 0.40), "PneumaticCylinder": (0.70, 0.72, 0.75),
+    "RoadPlatform": (0.45, 0.45, 0.45), "Tyre": (0.08, 0.08, 0.08), "Rim": (0.75, 0.75, 0.78),
+    "Carrier": (0.30, 0.45, 0.60), "Body": (0.00, 0.40, 0.50), "Spring": (0.85, 0.72, 0.20),
+    "Damper": (0.25, 0.25, 0.28), "HydraulicCylinder": (0.72, 0.18, 0.12), "ServoValve": (0.15, 0.15, 0.55),
+    "Sensors": (0.10, 0.60, 0.30),
+}
+
+
+def box(l, w, h, cx, cy, z0):
+    """Box centred on (cx, cy) in plan, from z0 upwards."""
+    return Part.makeBox(l, w, h, V(cx - l / 2.0, cy - w / 2.0, z0))
+
+
+def cyl_z(r, h, cx, cy, z0):
+    return Part.makeCylinder(r, h, V(cx, cy, z0), V(0, 0, 1))
+
+
+def spring(R, wire, pitch, height, cx, cy, z0):
+    helix = Part.makeHelix(pitch, height, R)
+    circle = Part.makeCircle(wire, V(R, 0, 0), V(0, 1, 0))
+    solid = Part.Wire(helix).makePipeShell([Part.Wire(circle)], True, True)
+    solid.translate(V(cx, cy, z0))
+    return solid
+
+
+def build():
+    p = P
+    parts = {}
+    # frame -------------------------------------------------------------
+    parts["Base"] = box(p["base_l"], p["base_w"], p["base_t"], 0, 0, 0)
+    frame = None
+    for sx in (-1, 1):
+        c = box(p["col"], p["col"], p["col_h"], sx * p["col_x"], 0, p["base_t"])
+        frame = c if frame is None else frame.fuse(c)
+    beam = box(2 * p["col_x"] + p["col"], p["col"], p["beam_h"], 0, 0, p["base_t"] + p["col_h"])
+    parts["Frame"] = frame.fuse(beam)
+    # pneumatic road actuator and platform ---------------------------------
+    z = p["base_t"]
+    pneu = cyl_z(p["pneu_r"], p["pneu_h"], 0, 0, z)
+    rod = cyl_z(p["rod_r"], 60, 0, 0, z + p["pneu_h"])
+    parts["PneumaticCylinder"] = pneu.fuse(rod)
+    z_plat = z + p["pneu_h"] + 60
+    parts["RoadPlatform"] = box(p["plat_l"], p["plat_w"], p["plat_t"], 0, 0, z_plat)
+    # tyre and rim (axis along y) -------------------------------------------
+    z_wc = z_plat + p["plat_t"] + p["tyre_R"] + p["tyre_r"]
+    parts["Tyre"] = Part.makeTorus(p["tyre_R"], p["tyre_r"], V(0, 0, z_wc), V(0, 1, 0))
+    parts["Rim"] = Part.makeCylinder(p["rim_r"], p["rim_w"], V(0, -p["rim_w"] / 2.0, z_wc), V(0, 1, 0))
+    # unsprung carrier: axle beam + guide carriages on the columns ------------
+    carrier = box(p["carrier_l"], p["carrier_w"], p["carrier_t"], 0, 0, z_wc - p["carrier_t"] / 2.0)
+    for sx in (-1, 1):
+        carrier = carrier.fuse(box(p["slider"], p["slider"] + 30, p["slider"] + 40,
+                                   sx * (p["col_x"] - p["col"] / 2.0 - p["slider"] / 2.0), 0,
+                                   z_wc - (p["slider"] + 40) / 2.0))
+    parts["Carrier"] = carrier
+    # sprung mass (vehicle body) with its own guide carriages -----------------
+    z_ctop = z_wc + p["carrier_t"] / 2.0
+    z_body = z_ctop + p["gap"]
+    body = box(p["body_l"], p["body_w"], p["body_t"], 0, 0, z_body)
+    for sx in (-1, 1):
+        body = body.fuse(box(p["slider"], p["slider"] + 30, p["body_t"] + 40,
+                             sx * (p["col_x"] - p["col"] / 2.0 - p["slider"] / 2.0), 0, z_body - 20))
+    parts["Body"] = body
+    # coil-over (spring + damper) on the left, actuator on the right ----------
+    sx_l, sx_r = -p["strut_x"], p["strut_x"]
+    parts["Spring"] = spring(p["spr_R"], p["spr_wire"], p["spr_pitch"], p["gap"] - 10, sx_l, 0, z_ctop + 5)
+    tube = cyl_z(p["dmp_r"], 0.55 * p["gap"], sx_l, 0, z_ctop)
+    prod = cyl_z(p["dmp_r"] * 0.4, 0.55 * p["gap"], sx_l, 0, z_body - 0.55 * p["gap"])
+    parts["Damper"] = tube.fuse(prod)
+    barrel = cyl_z(p["act_r"], 0.62 * p["gap"], sx_r, 0, z_ctop)
+    arod = cyl_z(p["act_rod"], 0.5 * p["gap"], sx_r, 0, z_body - 0.5 * p["gap"])
+    parts["HydraulicCylinder"] = barrel.fuse(arod)
+    vl, vw, vh = p["valve"]
+    parts["ServoValve"] = box(vl, vw, vh, sx_r + p["act_r"] + vl / 2.0, 0, z_ctop + 0.25 * p["gap"])
+    # sensors: displacement transducer from the top beam, accelerometer on the body
+    z_top = p["base_t"] + p["col_h"]
+    lvdt = cyl_z(p["lvdt_r"], z_top - (z_body + p["body_t"]), -150, 0, z_body + p["body_t"])
+    accel = box(p["acc"], p["acc"], p["acc"], 150, 0, z_body + p["body_t"])
+    parts["Sensors"] = lvdt.fuse(accel)
+    return parts, dict(z_wheel_centre=z_wc, z_body=z_body, z_carrier_top=z_ctop, z_platform=z_plat)
+
+
+def main():
+    parts, levels = build()
+    doc = App.newDocument("QuarterCarRig")
+    objs = []
+    for name, shape in parts.items():
+        o = doc.addObject("Part::Feature", name)
+        o.Shape = shape
+        if App.GuiUp:
+            o.ViewObject.ShapeColor = COLOURS.get(name, (0.6, 0.6, 0.6))
+        objs.append(o)
+    doc.recompute()
+    if not os.path.isdir(OUT):
+        os.makedirs(OUT)
+    if Import is not None:
+        Import.export(objs, os.path.join(OUT, "quarter_car_rig.step"))
+    if Mesh is not None:
+        for o in objs:
+            Mesh.export([o], os.path.join(OUT, o.Name + ".stl"))
+    with open(os.path.join(OUT, "levels_mm.txt"), "w") as fh:
+        for k, v in levels.items():
+            fh.write("%s %.1f\n" % (k, v))
+    if App.GuiUp:
+        import FreeCADGui as Gui
+        Gui.SendMsgToActiveView("ViewFit")
+        Gui.activeDocument().activeView().viewIsometric()
+    App.Console.PrintMessage("Quarter-car rig built: %d parts, exported to %s\n" % (len(objs), OUT))
+    return doc
+
+
+main()

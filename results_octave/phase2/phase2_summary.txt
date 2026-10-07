@@ -1,0 +1,32 @@
+Phase 2 run started 07-Oct-2026 08:45:24 (quick=1)
+
+== A. Simulink v2 (servo-valve plant, 50 Hz digital controller) ==
+  Simulink not available here: skipped (run this in MATLAB with Simulink).
+
+== B. Sensing path (AFC Case A, calibrated plant, Case 10) ==
+  exact states                       IAE 0.1294  accRMS 0.168  uRMS 0.50 V  sat 0%  viol 0.0 mm | vel. error 0.0000 m/s, x5 error 0.000
+  z_s + differencing                 IAE 0.1274  accRMS 0.369  uRMS 1.11 V  sat 0%  viol 0.0 mm | vel. error 0.0341 m/s, x5 error 0.049
+  z_s + integrated accelerometer     IAE 0.1276  accRMS 0.362  uRMS 1.08 V  sat 0%  viol 0.0 mm | vel. error 0.0245 m/s, x5 error 0.049
+  z_s + accelerometer -> Kalman      IAE 0.1357  accRMS 0.383  uRMS 1.18 V  sat 0%  viol 0.0 mm | vel. error 0.0250 m/s, x5 error 0.151
+  noise x0    vel. error: diff 0.0016, accint 0.0112, kalman 0.0080 m/s | accRMS: 0.168 / 0.168 / 0.182
+  noise x1    vel. error: diff 0.0341, accint 0.0245, kalman 0.0250 m/s | accRMS: 0.369 / 0.362 / 0.383
+  noise x4    vel. error: diff 0.1360, accint 0.0890, kalman 0.0846 m/s | accRMS: 1.119 / 1.114 / 1.057
+  Paper's claim (Sec. IV): integrating the accelerometer beats differencing z_s for velocity.
+  At nominal noise: differencing 0.0341 vs integration 0.0245 m/s RMS error.
+
+== C. Control-law cost (paper Table III: AFC 4.2, BSC 5.8, PID 2.6 ms) ==
+  GNU Octave 8.4.0 per call: AFC 154.39 us, BSC 176.40 us, PID 41.90 us (interpreter overhead dominates)
+  Embedded C (see embedded/README.md):
+# Control-law cost, Na et al. AFC vs BSC vs PID (2026-10-07)
+## host (x86-64, gcc -O2)
+self-check: afc -1.412611304  bsc -29.00796731  pid -19.4
+host ns/call (double): AFC 68.4  BSC 15.8  PID 3.6
+self-check: afc -1.41261816  bsc -29.00797081  pid -19.39999962
+host ns/call (float): AFC 67.4  BSC 16.7  PID 4.0
+## Cortex-M4 under QEMU mps2-an386, -icount shift=0 (instruction counts)
+M4 double(soft): instr/tick 40.00 | instructions per call AFC 18070 AFCfast 11264 BSC 9275 PID 940 | self-check afc -1.41261
+M4 float(soft): instr/tick 40.00 | instructions per call AFC 9555 AFCfast 5446 BSC 4424 PID 713 | self-check afc -1.41262
+M4 float(FPU): instr/tick 40.00 | instructions per call AFC 811 AFCfast 429 BSC 206 PID 144 | self-check afc -1.41262
+
+
+Done in 136.0 s. Outputs in /tmp/claude-0/-home-claude/f666fb30-e981-50af-869f-677a379bda80/scratchpad/dev/results/phase2

@@ -1,0 +1,583 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Quarter-Car AFC Lab</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Source+Sans+3:wght@400;600&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: test-rig bench. Controls rail on the left like a lab panel; the rig, the scope traces
+   and the readout share one working column. Collapses to a single column on phones. */
+:root {
+  --ground: #edf1f4;   /* cool lab paper */
+  --panel: #f8fafb;
+  --ink: #15212b;
+  --muted: #586976;
+  --rule: #c9d3db;
+  --afc: #0b6e7a;      /* controller trace (matches the report's AFC colour) */
+  --ref: #8a97a4;      /* passive reference trace */
+  --bound: #b3261e;    /* prescribed bound and valve rails */
+  --act: #b26b12;      /* hydraulic actuator */
+  --ok: #2b7a4b;
+  --warn: #a8640f;
+  --shade: rgba(179, 38, 30, 0.07);
+  --display: "Barlow Condensed", "Arial Narrow", "Roboto Condensed", sans-serif;
+  --body: "Source Sans 3", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+  --mono: "JetBrains Mono", "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --ground: #0e151c; --panel: #141e27; --ink: #e2e9ef; --muted: #93a3b1; --rule: #2b3a47;
+    --afc: #43b9c5; --ref: #6c7c8a; --bound: #e5574e; --act: #e0a24a; --ok: #4fb47c; --warn: #d9a441;
+    --shade: rgba(229, 87, 78, 0.10); color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --ground: #0e151c; --panel: #141e27; --ink: #e2e9ef; --muted: #93a3b1; --rule: #2b3a47;
+  --afc: #43b9c5; --ref: #6c7c8a; --bound: #e5574e; --act: #e0a24a; --ok: #4fb47c; --warn: #d9a441;
+  --shade: rgba(229, 87, 78, 0.10); color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--ground); color: var(--ink); font: 400 15px/1.5 var(--body); }
+.wrap { max-width: 1240px; margin: 0 auto; padding-inline: clamp(16px, 3vw, 32px); padding-block: 24px 40px; }
+header { display: grid; gap: 6px; margin-bottom: 20px; }
+.eyebrow { font: 600 12px/1.2 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+h1 { font: 700 clamp(34px, 5vw, 52px)/1 var(--display); letter-spacing: .01em; margin: 0; text-wrap: balance; }
+.lede { max-width: 68ch; color: var(--muted); margin: 4px 0 0; }
+.lab { display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: 20px; align-items: start; }
+@media (max-width: 880px) { .lab { grid-template-columns: minmax(0, 1fr); } }
+.controls { background: var(--panel); border: 1px solid var(--rule); border-radius: 6px; padding: 16px; display: grid; gap: 18px; }
+fieldset { border: 0; margin: 0; padding: 0; display: grid; gap: 10px; min-width: 0; }
+legend { font: 600 18px/1 var(--display); letter-spacing: .04em; text-transform: uppercase; padding: 0; margin-bottom: 6px; }
+label.row { display: grid; gap: 4px; font-size: 13px; color: var(--muted); }
+label.row .lbl { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+label.row span.val { font: 600 12px var(--mono); color: var(--ink); white-space: nowrap; }
+select, input[type=range] { width: 100%; }
+select { font: 400 14px var(--body); padding: 6px 8px; border: 1px solid var(--rule); border-radius: 4px; background: var(--ground); color: var(--ink); }
+input[type=range] { accent-color: var(--afc); }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { font: 600 12px var(--mono); padding: 5px 8px; border: 1px solid var(--rule); border-radius: 4px; background: var(--ground); color: var(--ink); cursor: pointer; }
+.chip[aria-pressed="true"] { background: var(--afc); border-color: var(--afc); color: var(--panel); }
+.chip:focus-visible, button:focus-visible, select:focus-visible, input:focus-visible { outline: 2px solid var(--afc); outline-offset: 2px; }
+.check { display: flex; gap: 8px; align-items: center; font-size: 13px; color: var(--muted); }
+button.reset { font: 600 14px var(--display); letter-spacing: .06em; text-transform: uppercase; padding: 8px 12px; border: 1px solid var(--ink); background: transparent; color: var(--ink); border-radius: 4px; cursor: pointer; }
+.hint { font-size: 12px; color: var(--muted); margin: 0; }
+.stage { display: grid; gap: 16px; min-width: 0; }
+.readout { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 1px; background: var(--rule); border: 1px solid var(--rule); border-radius: 6px; overflow: hidden; }
+.cell { background: var(--panel); padding: 10px 12px; display: grid; gap: 2px; }
+.cell .k { font: 600 11px var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.cell .v { font: 600 22px/1.1 var(--mono); font-variant-numeric: tabular-nums; }
+.cell .u { font: 400 11px var(--mono); color: var(--muted); }
+.status { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; font-size: 14px; }
+.pill { font: 600 12px var(--mono); letter-spacing: .04em; padding: 4px 10px; border-radius: 999px; border: 1px solid currentColor; }
+.pill.ok { color: var(--ok); } .pill.bad { color: var(--bound); } .pill.warn { color: var(--warn); }
+.ref { font: 400 13px var(--mono); color: var(--muted); }
+.panel { background: var(--panel); border: 1px solid var(--rule); border-radius: 6px; padding: 12px; min-width: 0; }
+.rigbox { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; }
+canvas { display: block; width: 100%; }
+#rig { aspect-ratio: 16 / 7; max-width: 100%; }
+#plots { aspect-ratio: 16 / 10; max-width: 100%; }
+@media (max-width: 600px) { #rig { aspect-ratio: 4 / 3; } #plots { aspect-ratio: 3 / 4; } }
+.transport { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.transport button { font: 600 13px var(--mono); padding: 6px 12px; border: 1px solid var(--rule); border-radius: 4px; background: var(--ground); color: var(--ink); cursor: pointer; min-width: 74px; }
+.transport input[type=range] { flex: 1 1 200px; }
+.transport .time { font: 600 13px var(--mono); font-variant-numeric: tabular-nums; min-width: 72px; }
+.explain { display: grid; gap: 8px; }
+.explain h2 { font: 700 22px/1.1 var(--display); letter-spacing: .02em; margin: 0; }
+.explain p { margin: 0; max-width: 72ch; }
+.eq { font: 400 14px/1.6 var(--mono); overflow-x: auto; white-space: nowrap; padding: 8px 10px; background: var(--ground); border-radius: 4px; }
+footer { margin-top: 28px; font-size: 13px; color: var(--muted); display: grid; gap: 6px; max-width: 90ch; }
+footer a { color: var(--afc); }
+@media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto; } }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+<header>
+  <div class="eyebrow">Na et al., IEEE TSMC 52(8), 2022 · interactive reproduction</div>
+  <h1>Quarter-Car AFC Lab</h1>
+  <p class="lede">Run the paper's approximation-free controller on an electro-hydraulic quarter car. The controller samples at 50&nbsp;Hz and the valve is limited to ±5&nbsp;V. The plant is integrated with RK4 using the same equations as the project's MATLAB library, so these numbers match <code>afc2</code> exactly.</p>
+</header>
+
+<div class="lab">
+  <form class="controls" id="controls" autocomplete="off">
+    <fieldset>
+      <legend>Road</legend>
+      <div class="chips" id="roadChips" role="group" aria-label="Road input"></div>
+      <label class="row" for="roadScale"><span class="lbl">Amplitude scale <span class="val" id="roadScaleV"></span></span><input type="range" id="roadScale" min="0.25" max="1.5" step="0.05" value="1"></label>
+    </fieldset>
+    <fieldset>
+      <legend>Controller</legend>
+      <label class="row" for="ctrl"><span class="lbl">Law</span>
+        <select id="ctrl">
+          <option value="afc|A">AFC, paper Case A gains</option>
+          <option value="afc|B">AFC, paper Case B gains</option>
+          <option value="afc_aw|A">AFC + anti-windup (our extension)</option>
+          <option value="skyhook|A">Skyhook spring + damper</option>
+          <option value="pid|A">PID, paper gains</option>
+          <option value="passive|A">Passive (no actuator)</option>
+        </select></label>
+      <label class="row" for="kscale"><span class="lbl">AFC gain scale k<sub>i</sub> × <span class="val" id="kscaleV"></span></span><input type="range" id="kscale" min="-2" max="2" step="0.05" value="0"></label>
+      <label class="row" for="mu1"><span class="lbl">Final bound μ<sub>1∞</sub> <span class="val" id="mu1V"></span></span><input type="range" id="mu1" min="5" max="50" step="1" value="18"></label>
+      <label class="check" for="showRef"><input type="checkbox" id="showRef" checked> Show passive reference</label>
+    </fieldset>
+    <fieldset>
+      <legend>Plant</legend>
+      <label class="row" for="plant"><span class="lbl">Actuator model</span>
+        <select id="plant">
+          <option value="cal">Calibrated hydraulic (τ = 33 ms)</option>
+          <option value="lit">Literature spool lag (τ = 3 ms)</option>
+          <option value="v1">v1 surrogate (first-order pressure)</option>
+        </select></label>
+      <label class="row" for="valve"><span class="lbl">Valve gain × <span class="val" id="valveV"></span></span><input type="range" id="valve" min="-2" max="2" step="0.05" value="0"></label>
+      <label class="row" for="tau"><span class="lbl">Valve + sensing lag τ <span class="val" id="tauV"></span></span><input type="range" id="tau" min="3" max="100" step="1" value="33"></label>
+    </fieldset>
+    <button type="button" class="reset" id="reset">Paper defaults</button>
+    <p class="hint">Defaults reproduce the paper's Case 10 run: 43&nbsp;mm at 0.505&nbsp;Hz, Case A gains, μ<sub>1</sub>(t) = (0.2 − 0.018)e<sup>−3t</sup> + 0.018&nbsp;m.</p>
+  </form>
+
+  <section class="stage" aria-live="polite">
+    <div class="readout" id="readout"></div>
+    <div class="status" id="status"></div>
+
+    <div class="panel rigbox">
+      <canvas id="rig" role="img" aria-label="Animated side view of the quarter car"></canvas>
+      <div class="transport">
+        <button type="button" id="play">Pause</button>
+        <input type="range" id="scrub" min="0" max="1000" step="1" value="0" aria-label="Time">
+        <span class="time" id="clock">0.00 s</span>
+        <select id="speed" aria-label="Playback speed" style="width:auto">
+          <option value="0.25">¼×</option><option value="0.5" selected>½×</option><option value="1">1×</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="panel">
+      <canvas id="plots" role="img" aria-label="Body displacement with prescribed bound, valve voltage and body acceleration"></canvas>
+    </div>
+
+    <div class="panel explain">
+      <h2>What AFC does near zero error</h2>
+      <p id="linText"></p>
+      <div class="eq" id="linEq"></div>
+      <p class="hint">Inside the envelope the logarithm is close to linear, so AFC acts like a cascade of proportional loops. As |z<sub>s</sub>| approaches μ<sub>1</sub> the barrier raises the gain sharply. That is how the bound is enforced, and it is also why a slow or saturated valve turns AFC into bang-bang control.</p>
+    </div>
+  </section>
+</div>
+
+<footer>
+  <div>Plant: Alleyne &amp; Hedrick (1995) hydraulic quarter car with the servo-valve flow law of Na et al. eqs. (2)–(6). The valve gain K<sub>v</sub> = 5×10<sup>−4</sup>&nbsp;m/V and lag τ = 1/30&nbsp;s are calibrated so that the unchanged Case A AFC reproduces the paper's Case 10 indices. The pressure scaling κ = 10<sup>−6</sup> is assumed. The anti-windup and skyhook controllers are comparisons added by this project, not part of the paper.</div>
+  <div>Paper hardware numbers are measurements on the authors' rig. Simulated numbers come from this model. Source code: <a href="https://github.com/Galabavamsi/quarter-car-afc-replication" target="_blank" rel="noopener">quarter-car-afc-replication</a>.</div>
+</footer>
+<script>
+// qcsim.js - quarter-car + servo-valve + AFC simulator (mirrors afc2/*.m)
+const QC = (() => {
+  const PLANTS = {
+    cal: { label: 'Calibrated hydraulic (Alleyne–Hedrick, τ = 33 ms)', model: 'valve',
+      ms: 290, mu: 59, ks: 16812, bs: 1000, kt: 190000, A: 3.35e-4, alpha: 4.515e13, beta: 1,
+      gamma: 1.545e9, Ps: 10342500, kappa: 1e-6, Kv: 5e-4, tau: 1 / 30, h: 0.001 },
+    lit: { label: 'Literature spool lag only (τ = 3 ms)', model: 'valve',
+      ms: 290, mu: 59, ks: 16812, bs: 1000, kt: 190000, A: 3.35e-4, alpha: 4.515e13, beta: 1,
+      gamma: 1.545e9, Ps: 10342500, kappa: 1e-6, Kv: 5e-4, tau: 0.003, h: 0.001 },
+    v1: { label: 'v1 surrogate actuator (first-order pressure)', model: 'equivalent',
+      ms: 320, mu: 40, ks: 18000, bs: 1000, kt: 200000, A: 3.35e-4, kappa: 1e-6, beta: 1,
+      cRel: 0.05, bu: 0.75, Plim: 10.3425e6, h: 0.005 },
+  };
+  const ROADS = { 3: [0.025, 0.188], 4: [0.043, 0.204], 5: [0.043, 0.243], 6: [0.043, 0.307],
+    7: [0.043, 0.361], 8: [0.043, 0.407], 9: [0.043, 0.423], 10: [0.043, 0.505] };
+  const AFC = {
+    A: { mu0: [0.2, 110, 100], muinf: [0.018, 90, 80], alpha: [3, 2, 2], k: [25.5, 12, 216] },
+    B: { mu0: [0.12, 80, 50], muinf: [0.018, 40, 20], alpha: [2, 2, 4], k: [12, 5, 146] },
+  };
+
+  const isoCache = new Map();
+  function road(spec) {
+    if (spec.kind === 'case') {
+      const [A0, f] = ROADS[spec.peaks]; const A = A0 * (spec.scale ?? 1); const w = 2 * Math.PI * f;
+      return t => [A * Math.sin(w * t), A * w * Math.cos(w * t)];
+    }
+    if (spec.kind === 'bump') {
+      const H = 0.05 * (spec.scale ?? 1), L = 2.5, v = 20 / 3.6, t0 = 1.0, d = L / v;
+      return t => (t >= t0 && t <= t0 + d)
+        ? [H / 2 * (1 - Math.cos(2 * Math.PI * (t - t0) / d)), H / 2 * (2 * Math.PI / d) * Math.sin(2 * Math.PI * (t - t0) / d)]
+        : [0, 0];
+    }
+    // ISO 8608 class C, 54 km/h, 200 sinusoids, deterministic phases (same as qc_road.m, seed 1)
+    const ckey = String(spec.scale ?? 1) + '|' + (spec.T ?? 20);
+    if (isoCache.has(ckey)) return isoCache.get(ckey);
+    const Nn = 200, n0 = 0.1, Gd0 = 256e-6 * (spec.scale ?? 1) ** 2, v = 15;
+    const amp = [], w = [], phi = [];
+    const dn = (2.83 - 0.011) / (Nn - 1);
+    for (let i = 0; i < Nn; i++) {
+      const n = 0.011 + i * dn; const Gd = Gd0 * (n / n0) ** -2;
+      amp.push(Math.sqrt(2 * Gd * dn)); w.push(2 * Math.PI * n * v);
+      phi.push(2 * Math.PI * (((i + 1) * 0.6180339887498949 + 0.7548776662466927) % 1));
+    }
+    const exact = t => { let z = 0, zd = 0; for (let i = 0; i < Nn; i++) { const a = w[i] * t + phi[i]; z += amp[i] * Math.sin(a); zd += amp[i] * w[i] * Math.cos(a); } return [z, zd]; };
+    // tabulate on a 0.5 ms grid: every RK4 stage time of a 1 ms or 5 ms step lands on it exactly
+    const dg = 0.0005, M = Math.round((spec.T ?? 20) / dg) + 2, tab = new Float64Array(M);
+    for (let i = 0; i < M; i++) tab[i] = exact(i * dg)[0];
+    const fn = t => { const i = Math.round(t / dg); return (i < M && Math.abs(t - i * dg) < 1e-9) ? [tab[i], 0] : exact(t); };
+    isoCache.set(ckey, fn);
+    return fn;
+  }
+
+  function rhs(p, x, u, zr, passive, out) {
+    const d = x[0] - x[2], v = x[1] - x[3];
+    const Fs = p.ks * d, Fd = p.bs * v, Ft = p.kt * (x[2] - zr);
+    let F = 0; out[4] = 0; out[5] = 0;
+    if (!passive) {
+      F = p.A * x[4] / p.kappa;
+      if (p.model === 'equivalent') {
+        let d5 = -p.beta * x[4] - p.cRel * v + p.bu * u; const lim = p.kappa * p.Plim;
+        if ((x[4] >= lim && d5 > 0) || (x[4] <= -lim && d5 < 0)) d5 = 0;
+        out[4] = d5;
+      } else {
+        const PL = x[4] / p.kappa; let xv;
+        if (p.tau > 0) { xv = x[5]; out[5] = (p.Kv * u - x[5]) / p.tau; } else xv = p.Kv * u;
+        const dP = p.Ps - Math.sign(xv) * PL;
+        out[4] = p.kappa * (-p.beta * PL - p.alpha * p.A * v + p.gamma * xv * Math.sqrt(Math.max(dP, 0)));
+      }
+    }
+    out[0] = x[1]; out[1] = (-Fd - Fs + F) / p.ms; out[2] = x[3]; out[3] = (Fd + Fs - Ft - F) / p.mu;
+    return out;
+  }
+
+  function afcLaw(c, t, x, rho) {
+    const src = [x[0], x[1], x[4]]; let prev = 0, v = 0; const zeta = [0, 0, 0];
+    for (let i = 0; i < 3; i++) {
+      const mu = ((c.mu0[i] - c.muinf[i]) * Math.exp(-c.alpha[i] * t) + c.muinf[i]) * (1 + rho);
+      zeta[i] = (src[i] - prev) / mu;
+      const z = Math.min(Math.max(zeta[i], -1 + 1e-8), 1 - 1e-8);
+      v = -c.k[i] * 0.5 * Math.log((1 + z) / (1 - z)); prev = v;
+    }
+    return [v, zeta];
+  }
+
+  // cfg: {plant, ctrl:{type, variant, kscale, mu1inf, alpha1}, road:{...}, T, Kscale, tau}
+  function simulate(cfg) {
+    const p = Object.assign({}, PLANTS[cfg.plant]);
+    if (p.model === 'valve') { p.Kv *= cfg.valveScale ?? 1; if (cfg.tauMs != null) p.tau = cfg.tauMs / 1000; }
+    else { p.bu *= cfg.valveScale ?? 1; }
+    const Ts = 0.02, T = cfg.T ?? 20, N = Math.round(T / Ts), sub = Math.max(1, Math.round(Ts / p.h)), h = Ts / sub;
+    const R = road(cfg.road), ct = cfg.ctrl.type, passive = ct === 'passive';
+    const base = AFC[cfg.ctrl.variant ?? 'A'];
+    const c = { mu0: base.mu0.slice(), muinf: base.muinf.slice(), alpha: base.alpha.slice(), k: base.k.map(k => k * (cfg.ctrl.kscale ?? 1)) };
+    if (cfg.ctrl.mu1inf != null) { c.muinf[0] = cfg.ctrl.mu1inf; c.mu0[0] = Math.max(c.mu0[0], c.muinf[0] * 1.5); }
+    if (cfg.ctrl.alpha1 != null) c.alpha[0] = cfg.ctrl.alpha1;
+    const x = new Float64Array(6), k1 = new Float64Array(6), k2 = new Float64Array(6), k3 = new Float64Array(6), k4 = new Float64Array(6), tmp = new Float64Array(6);
+    const out = { t: new Float64Array(N + 1), zs: new Float64Array(N + 1), zu: new Float64Array(N + 1), zr: new Float64Array(N + 1),
+      u: new Float64Array(N + 1), uraw: new Float64Array(N + 1), acc: new Float64Array(N + 1), mu1: new Float64Array(N + 1),
+      zeta1: new Float64Array(N + 1), diverged: false, c, p };
+    let I = 0, rho = 0; const Vmax = 5;
+    const kp = 3080, ki = 200, kd = 200;
+    for (let k = 0; k <= N; k++) {
+      const t = k * Ts; out.t[k] = t;
+      const [zrk] = R(t); out.zr[k] = zrk; out.zs[k] = x[0]; out.zu[k] = x[2];
+      out.mu1[k] = (c.mu0[0] - c.muinf[0]) * Math.exp(-c.alpha[0] * t) + c.muinf[0];
+      let ur = 0;
+      if (ct === 'afc' || ct === 'afc_aw') {
+        const [v] = afcLaw(c, t, x, ct === 'afc_aw' ? rho : 0); ur = v;
+        if (ct === 'afc_aw') rho = Math.max(0, rho + Ts * (-0.5 * rho + 5 * Math.max(Math.abs(ur) - Vmax, 0) / Vmax));
+      } else if (ct === 'skyhook') {
+        ur = -2.7 * (x[4] - p.kappa * (-4000 * x[1] - 1e5 * x[0]) / p.A);
+      } else if (ct === 'pid') {
+        const e = -x[0], Ic = I + Ts * e, uc = kp * e + ki * Ic - kd * x[1];
+        if (Math.abs(uc) <= Vmax || Math.sign(uc) !== Math.sign(e)) I = Ic;
+        ur = kp * e + ki * I - kd * x[1];
+      }
+      if (!isFinite(ur)) ur = Math.sign(ur) * 1e6;
+      const u = Math.min(Math.max(ur, -Vmax), Vmax); out.uraw[k] = ur; out.u[k] = u;
+      out.acc[k] = rhs(p, x, u, zrk, passive, tmp)[1];
+      out.zeta1[k] = x[0] / out.mu1[k];   // audited against the nominal envelope
+      if (k === N) break;
+      for (let j = 0; j < sub; j++) {
+        const tj = t + j * h;
+        rhs(p, x, u, R(tj)[0], passive, k1);
+        for (let i = 0; i < 6; i++) tmp[i] = x[i] + h / 2 * k1[i];
+        rhs(p, tmp, u, R(tj + h / 2)[0], passive, k2);
+        for (let i = 0; i < 6; i++) tmp[i] = x[i] + h / 2 * k2[i];
+        rhs(p, tmp, u, R(tj + h / 2)[0], passive, k3);
+        for (let i = 0; i < 6; i++) tmp[i] = x[i] + h * k3[i];
+        rhs(p, tmp, u, R(tj + h)[0], passive, k4);
+        for (let i = 0; i < 6; i++) x[i] += h / 6 * (k1[i] + 2 * k2[i] + 2 * k3[i] + k4[i]);
+      }
+      if (!x.every(Number.isFinite) || Math.abs(x[0]) > 10) { out.diverged = true; out.N = k; break; }
+    }
+    out.N = out.N ?? N;
+    out.metrics = metrics(out);
+    return out;
+  }
+
+  function trapz(t, y, n) { let s = 0; for (let i = 1; i <= n; i++) s += 0.5 * (t[i] - t[i - 1]) * (y(i) + y(i - 1)); return s; }
+  function metrics(o) {
+    const n = o.N, t = o.t;
+    const IAE = trapz(t, i => Math.abs(o.zs[i]), n), ITAE = trapz(t, i => t[i] * Math.abs(o.zs[i]), n), ITSE = trapz(t, i => t[i] * o.zs[i] ** 2, n);
+    let a2 = 0, u2 = 0, sat = 0, viol = 0, zmax = 0, travel = 0;
+    for (let i = 0; i <= n; i++) {
+      a2 += o.acc[i] ** 2; u2 += o.u[i] ** 2; if (Math.abs(o.uraw[i]) > 5) sat++;
+      viol = Math.max(viol, Math.abs(o.zs[i]) - o.mu1[i]); zmax = Math.max(zmax, Math.abs(o.zs[i]));
+      travel = Math.max(travel, Math.abs(o.zs[i] - o.zu[i]));
+    }
+    return { IAE, ITAE, ITSE, accRMS: Math.sqrt(a2 / (n + 1)), uRMS: Math.sqrt(u2 / (n + 1)), sat: sat / (n + 1),
+      viol: Math.max(0, viol), zmax, travel };
+  }
+
+  function linearAFC(cfg) {
+    const p = PLANTS[cfg.plant]; const c = AFC[cfg.ctrl.variant ?? 'A']; const ks = cfg.ctrl.kscale ?? 1;
+    const m1 = cfg.ctrl.mu1inf ?? c.muinf[0];
+    const g1 = ks * c.k[0] / m1, g2 = ks * c.k[1] / c.muinf[1], g3 = ks * c.k[2] / c.muinf[2];
+    return { g1, g2, g3, spring: p.A / p.kappa * g2 * g1, damper: p.A / p.kappa * g2, Kx1: -g3 * g2 * g1, Kx2: -g3 * g2, Kx5: -g3 };
+  }
+  return { simulate, linearAFC, PLANTS };
+})();
+if (typeof module !== 'undefined') module.exports = QC;
+
+(() => {
+  const $ = id => document.getElementById(id);
+  const ROADS = [3, 4, 5, 6, 7, 8, 9, 10].map(p => ({ key: 'c' + p, label: p + ' pk', spec: { kind: 'case', peaks: p } }))
+    .concat([{ key: 'bump', label: 'Bump', spec: { kind: 'bump' } }, { key: 'iso', label: 'ISO C', spec: { kind: 'iso' } }]);
+  const DEF = { road: 'c10', roadScale: 1, ctrl: 'afc|A', kscale: 0, mu1: 18, showRef: true, plant: 'cal', valve: 0, tau: 33 };
+  const S = Object.assign({}, DEF);
+  let sim = null, ref = null, playT = 0, playing = !window.matchMedia('(prefers-reduced-motion: reduce)').matches, lastFrame = 0;
+
+  // ---- controls ---------------------------------------------------------
+  const chipBox = $('roadChips');
+  ROADS.forEach(r => {
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'chip'; b.textContent = r.label; b.id = 'road_' + r.key;
+    b.setAttribute('aria-pressed', String(r.key === S.road));
+    b.addEventListener('click', () => { S.road = r.key; syncChips(); recompute(); });
+    chipBox.appendChild(b);
+  });
+  function syncChips() { ROADS.forEach(r => $('road_' + r.key).setAttribute('aria-pressed', String(r.key === S.road))); }
+  const bind = (id, key, parse) => $(id).addEventListener('input', e => { S[key] = parse(e.target); recompute(); });
+  bind('roadScale', 'roadScale', el => +el.value);
+  bind('ctrl', 'ctrl', el => el.value);
+  bind('kscale', 'kscale', el => +el.value);
+  bind('mu1', 'mu1', el => +el.value);
+  bind('plant', 'plant', el => el.value);
+  bind('valve', 'valve', el => +el.value);
+  bind('tau', 'tau', el => +el.value);
+  $('showRef').addEventListener('change', e => { S.showRef = e.target.checked; draw(); });
+  $('reset').addEventListener('click', () => { Object.assign(S, DEF); writeControls(); recompute(); });
+  $('play').addEventListener('click', () => { playing = !playing; $('play').textContent = playing ? 'Pause' : 'Play'; lastFrame = 0; if (playing) requestAnimationFrame(tick); });
+  $('scrub').addEventListener('input', e => { if (!sim) return; playT = (+e.target.value / 1000) * sim.t[sim.N]; draw(); });
+
+  function writeControls() {
+    $('roadScale').value = S.roadScale; $('ctrl').value = S.ctrl; $('kscale').value = S.kscale; $('mu1').value = S.mu1;
+    $('plant').value = S.plant; $('valve').value = S.valve; $('tau').value = S.tau; $('showRef').checked = S.showRef; syncChips();
+  }
+  function labels() {
+    const afc = S.ctrl.startsWith('afc');
+    $('roadScaleV').textContent = S.roadScale.toFixed(2);
+    $('kscaleV').textContent = Math.pow(2, S.kscale).toFixed(2);
+    $('mu1V').textContent = S.mu1 + ' mm';
+    $('valveV').textContent = Math.pow(2, S.valve).toFixed(2);
+    $('tauV').textContent = S.plant === 'v1' ? 'n/a' : S.tau + ' ms';
+    $('kscale').disabled = !afc; $('mu1').disabled = !afc; $('tau').disabled = S.plant === 'v1';
+  }
+
+  // ---- simulation -------------------------------------------------------
+  function cfgFor(ctrlStr) {
+    const [type, variant] = ctrlStr.split('|');
+    const r = ROADS.find(x => x.key === S.road);
+    const T = r.spec.kind === 'bump' ? 6 : 20;
+    return { plant: S.plant, valveScale: Math.pow(2, S.valve), tauMs: S.plant === 'v1' ? null : S.tau, T,
+      ctrl: { type, variant, kscale: Math.pow(2, S.kscale), mu1inf: S.mu1 / 1000 },
+      road: Object.assign({ scale: S.roadScale, T }, r.spec) };
+  }
+  let pending = false;
+  function recompute() {
+    labels();
+    if (pending) return; pending = true;
+    requestAnimationFrame(() => {
+      pending = false;
+      sim = QC.simulate(cfgFor(S.ctrl));
+      const rc = cfgFor('passive|A'); rc.ctrl.mu1inf = S.mu1 / 1000;
+      ref = QC.simulate(rc);
+      if (playT > sim.t[sim.N]) playT = 0;
+      readout(); explain(); draw();
+    });
+  }
+
+  // ---- readout ----------------------------------------------------------
+  function readout() {
+    const m = sim.metrics;
+    const cells = [
+      ['IAE', m.IAE.toFixed(4), 'm·s'], ['ITAE', m.ITAE.toFixed(3), 'm·s²'], ['ITSE', m.ITSE.toFixed(4), 'm²·s²'],
+      ['Acc. RMS', m.accRMS.toFixed(3), 'm/s²'], ['Voltage RMS', m.uRMS.toFixed(2), 'V'],
+      ['Saturated', (100 * m.sat).toFixed(0) + '%', 'of samples'], ['Peak |z_s|', (1e3 * m.zmax).toFixed(1), 'mm'],
+      ['Max travel', (1e3 * m.travel).toFixed(1), 'mm, z_s − z_u']];
+    $('readout').innerHTML = cells.map(([k, v, u]) => `<div class="cell"><span class="k">${k}</span><span class="v">${v}</span><span class="u">${u}</span></div>`).join('');
+    const ctrlType = S.ctrl.split('|')[0];
+    const pills = [];
+    if (sim.diverged) pills.push('<span class="pill bad">Diverged</span>');
+    else if (m.viol < 1e-6) pills.push('<span class="pill ok">Bound kept</span>');
+    else pills.push(`<span class="pill bad">Bound crossed by ${(1e3 * m.viol).toFixed(1)} mm</span>`);
+    if (ctrlType !== 'passive') pills.push(m.sat > 0.05 ? `<span class="pill warn">Valve saturated ${(100 * m.sat).toFixed(0)}% of the time</span>` : '<span class="pill ok">Valve within ±5 V</span>');
+    let note = '';
+    if (S.road === 'c10' && S.ctrl === 'afc|A' && S.plant === 'cal' && S.kscale === 0 && S.mu1 === 18 && S.valve === 0 && S.tau === 33 && S.roadScale === 1)
+      note = '<span class="ref">Paper Table II (hardware): IAE 0.1216 · ITAE 1.140 · ITSE 0.0093</span>';
+    else if (S.showRef) note = `<span class="ref">Passive on this road: IAE ${ref.metrics.IAE.toFixed(4)} · peak ${(1e3 * ref.metrics.zmax).toFixed(1)} mm</span>`;
+    $('status').innerHTML = pills.join('') + note;
+  }
+
+  function explain() {
+    const L = QC.linearAFC(cfgFor(S.ctrl.startsWith('afc') ? S.ctrl : 'afc|A'));
+    const v1 = S.plant === 'v1';
+    $('linText').innerHTML = `With the current gains and μ<sub>1∞</sub> = ${S.mu1} mm, the AFC law linearised about zero error is a static state feedback. ` +
+      `In force terms it is a skyhook spring of <strong>${(L.spring / 1000).toFixed(1)} kN/m</strong> and a skyhook damper of <strong>${L.damper.toFixed(0)} N·s/m</strong>, ` +
+      `with a pressure loop of ${L.g3.toFixed(2)} V per unit of x<sub>5</sub> behind them.` + (v1 ? ' (The v1 actuator uses the same scaling.)' : '');
+    $('linEq').textContent = `u ≈ ${L.Kx1.toFixed(1)}·z_s ${L.Kx2 < 0 ? '−' : '+'} ${Math.abs(L.Kx2).toFixed(3)}·ż_s ${L.Kx5 < 0 ? '−' : '+'} ${Math.abs(L.Kx5).toFixed(2)}·x₅    [V],   x₅ = κ·P_L`;
+  }
+
+  // ---- drawing ----------------------------------------------------------
+  const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+  function fit(cv) {
+    const r = cv.getBoundingClientRect(), d = window.devicePixelRatio || 1;
+    const w = Math.max(1, Math.round(r.width * d)), h = Math.max(1, Math.round(r.height * d));
+    if (cv.width !== w || cv.height !== h) { cv.width = w; cv.height = h; }
+    const g = cv.getContext('2d'); g.setTransform(d, 0, 0, d, 0, 0); return [g, r.width, r.height];
+  }
+  function idxAt(t) { return Math.min(sim.N, Math.max(0, Math.round(t / 0.02))); }
+
+  function drawRig() {
+    const [g, W, H] = fit($('rig'));
+    const C = { ink: css('--ink'), muted: css('--muted'), rule: css('--rule'), afc: css('--afc'), ref: css('--ref'), bound: css('--bound'), act: css('--act'), panel: css('--panel') };
+    g.clearRect(0, 0, W, H);
+    const k = idxAt(playT), E = 4;
+    const s = H / 2.25, base = H - 0.18 * s;            // px per metre, ground line
+    const X = W / 2, Y = z => base - z * s;
+    const zr = E * sim.zr[k], zu = E * sim.zu[k], zs = E * sim.zs[k], mu = E * sim.mu1[k];
+    const R = 0.30, hubZ = R + zu, bodyZ = 1.42 + zs;
+    g.lineWidth = 1; g.strokeStyle = C.rule; g.beginPath(); g.moveTo(16, base + 0.08 * s); g.lineTo(W - 16, base + 0.08 * s); g.stroke();
+    // road block
+    g.fillStyle = C.rule; g.fillRect(X - 0.62 * s, Y(zr), 1.24 * s, (0.08 + zr) * s + 0.0001);
+    // tyre and hub
+    g.fillStyle = C.ink; g.beginPath(); g.arc(X, Y(hubZ), R * s, 0, 2 * Math.PI); g.fill();
+    g.fillStyle = C.panel; g.beginPath(); g.arc(X, Y(hubZ), R * 0.38 * s, 0, 2 * Math.PI); g.fill();
+    g.fillStyle = C.muted; g.fillRect(X - 0.48 * s, Y(hubZ + 0.06), 0.96 * s, 0.12 * s);
+    // spring (zig-zag) on the left
+    const sx = X - 0.32 * s, z0 = hubZ + 0.06, z1 = bodyZ - 0.2, n = 9;
+    g.strokeStyle = C.muted; g.lineWidth = 2; g.beginPath(); g.moveTo(sx, Y(z0));
+    for (let i = 1; i < 2 * n; i++) g.lineTo(sx + (i % 2 ? -1 : 1) * 0.07 * s, Y(z0 + (z1 - z0) * i / (2 * n)));
+    g.lineTo(sx, Y(z1)); g.stroke();
+    // damper (centre) and actuator (right): lower tube on the hub, rod from the body
+    const strut = (x, col, w) => {
+      g.fillStyle = col; g.fillRect(x - w / 2 * s, Y(z0 + 0.42), w * s, 0.42 * s);
+      g.strokeStyle = col; g.lineWidth = 3; g.beginPath(); g.moveTo(x, Y(z1)); g.lineTo(x, Y(z0 + 0.32)); g.stroke();
+    };
+    strut(X, C.muted, 0.09); strut(X + 0.32 * s, C.act, 0.12);
+    // passive ghost body
+    if (S.showRef && ref) {
+      const gz = 1.42 + E * ref.zs[Math.min(k, ref.N)];
+      g.setLineDash([5, 4]); g.strokeStyle = C.ref; g.lineWidth = 1.5;
+      g.strokeRect(X - 0.75 * s, Y(gz + 0.19), 1.5 * s, 0.38 * s); g.setLineDash([]);
+    }
+    // body
+    g.fillStyle = C.afc; g.fillRect(X - 0.75 * s, Y(bodyZ + 0.19), 1.5 * s, 0.38 * s);
+    g.fillStyle = C.ink; g.fillRect(X + 0.75 * s, Y(bodyZ) - 1.5, 0.16 * s, 3);
+    // prescribed bound bars around the nominal body height
+    g.fillStyle = C.bound;
+    [1, -1].forEach(sg => g.fillRect(X + 0.95 * s, Y(1.42 + sg * mu) - 1.5, 0.3 * s, 3));
+    g.fillStyle = C.bound; g.globalAlpha = 0.08; g.fillRect(X + 0.95 * s, Y(1.42 + mu), 0.3 * s, 2 * mu * s); g.globalAlpha = 1;
+    // annotations
+    g.fillStyle = C.muted; g.font = '12px ' + css('--mono');
+    g.fillText('body', X - 0.72 * s, Y(bodyZ + 0.24));
+    g.fillText('±μ₁(t)', X + 0.97 * s, Y(1.42 + mu) - 6);
+    g.fillText('valve cylinder', X + 0.42 * s, Y(z0 + 0.25));
+    g.fillText('road', X - 0.6 * s, Y(zr) + 14);
+    g.textAlign = 'right'; g.fillText('motion ×4', W - 16, 18); g.textAlign = 'left';
+    g.fillText(`u = ${sim.u[k].toFixed(2)} V`, 16, H - 46);
+    g.fillText(`z_s = ${(1e3 * sim.zs[k]).toFixed(1)} mm`, 16, H - 30);
+    g.fillText(`z_r = ${(1e3 * sim.zr[k]).toFixed(1)} mm`, 16, H - 14);
+  }
+
+  function niceStep(span, n) { const raw = span / n, p = Math.pow(10, Math.floor(Math.log10(raw))), m = raw / p; return (m < 1.5 ? 1 : m < 3.5 ? 2 : m < 7.5 ? 5 : 10) * p; }
+
+  function drawPlots() {
+    const [g, W, H] = fit($('plots'));
+    const C = { ink: css('--ink'), muted: css('--muted'), rule: css('--rule'), afc: css('--afc'), ref: css('--ref'), bound: css('--bound'), shade: css('--shade') };
+    g.clearRect(0, 0, W, H);
+    const L = 46, Rm = 14, top = 22, gap = 34, rows = 3, rh = (H - top - 26 - gap * (rows - 1)) / rows;
+    const T = sim.t[sim.N], xs = t => L + (W - L - Rm) * t / T;
+    const N = sim.N;
+    const zmax = Math.max(1.25 * 1e3 * Math.max(sim.metrics.zmax, S.showRef ? ref.metrics.zmax : 0, sim.mu1[sim.N] * 1.2), 5);
+    let amax = 0.5; for (let i = 0; i <= N; i++) amax = Math.max(amax, Math.abs(sim.acc[i]), S.showRef ? Math.abs(ref.acc[i]) : 0);
+    amax = Math.min(amax * 1.15, 80);
+    const panels = [
+      { title: 'Body displacement z_s (mm)', lo: -zmax, hi: zmax },
+      { title: 'Valve command u (V)', lo: -6, hi: 6 },
+      { title: 'Body acceleration (m/s²)', lo: -amax, hi: amax }];
+    g.font = '11px ' + css('--mono');
+    panels.forEach((pn, r) => {
+      const y0 = top + r * (rh + gap), ys = v => y0 + rh * (pn.hi - Math.max(pn.lo, Math.min(pn.hi, v))) / (pn.hi - pn.lo);
+      pn.ys = ys; pn.y0 = y0;
+      // grid + ticks
+      g.strokeStyle = C.rule; g.lineWidth = 1; g.fillStyle = C.muted;
+      const st = niceStep(pn.hi - pn.lo, 4);
+      for (let v = Math.ceil(pn.lo / st) * st; v <= pn.hi + 1e-9; v += st) {
+        const y = ys(v); g.beginPath(); g.moveTo(L, y); g.lineTo(W - Rm, y); g.stroke();
+        g.textAlign = 'right'; g.fillText(Math.abs(v) < 1e-9 ? '0' : (+v.toPrecision(3)).toString(), L - 6, y + 4);
+      }
+      g.textAlign = 'left'; g.fillStyle = C.ink; g.fillText(pn.title, L, y0 - 7);
+      g.strokeStyle = C.rule; g.strokeRect(L, y0, W - L - Rm, rh);
+    });
+    // time axis
+    const tst = niceStep(T, 6); g.fillStyle = C.muted; g.textAlign = 'center';
+    const yb = panels[2].y0 + rh;
+    for (let t = 0; t <= T + 1e-9; t += tst) { const last = t + tst > T + 1e-9; g.textAlign = last ? 'right' : 'center'; g.fillText(t.toFixed(tst < 1 ? 1 : 0) + (last ? ' s' : ''), last ? xs(t) + 4 : xs(t), yb + 16); }
+    g.textAlign = 'left';
+    // panel 1: envelope + traces
+    const p1 = panels[0];
+    g.fillStyle = C.shade; g.beginPath();
+    for (let i = 0; i <= N; i++) g.lineTo(xs(sim.t[i]), p1.ys(1e3 * sim.mu1[i]));
+    for (let i = N; i >= 0; i--) g.lineTo(xs(sim.t[i]), p1.ys(-1e3 * sim.mu1[i]));
+    g.closePath(); g.fill();
+    const line = (pn, arr, n, col, w, dash, scale = 1) => { g.strokeStyle = col; g.lineWidth = w; g.setLineDash(dash); g.beginPath(); for (let i = 0; i <= n; i++) { const x = xs(sim.t[i]), y = pn.ys(scale * arr[i]); i ? g.lineTo(x, y) : g.moveTo(x, y); } g.stroke(); g.setLineDash([]); };
+    line(p1, sim.mu1, N, C.bound, 1, [4, 3], 1e3); line(p1, sim.mu1, N, C.bound, 1, [4, 3], -1e3);
+    if (S.showRef) line(p1, ref.zs, Math.min(N, ref.N), C.ref, 1.2, [5, 4], 1e3);
+    line(p1, sim.zs, N, C.afc, 1.6, [], 1e3);
+    // panel 2: rails + command, saturated samples in the bound colour
+    const p2 = panels[1];
+    [5, -5].forEach(v => { g.strokeStyle = C.bound; g.setLineDash([4, 3]); g.beginPath(); g.moveTo(L, p2.ys(v)); g.lineTo(W - Rm, p2.ys(v)); g.stroke(); g.setLineDash([]); });
+    g.lineWidth = 1.4;
+    for (let i = 0; i < N; i++) {
+      g.strokeStyle = Math.abs(sim.uraw[i]) > 5 ? C.bound : C.afc;
+      g.beginPath(); g.moveTo(xs(sim.t[i]), p2.ys(sim.u[i])); g.lineTo(xs(sim.t[i + 1]), p2.ys(sim.u[i])); g.lineTo(xs(sim.t[i + 1]), p2.ys(sim.u[i + 1])); g.stroke();
+    }
+    // panel 3: acceleration
+    const p3 = panels[2];
+    if (S.showRef) line(p3, ref.acc, Math.min(N, ref.N), C.ref, 1, [5, 4]);
+    line(p3, sim.acc, N, C.afc, 1.2, []);
+    // cursor
+    const xc = xs(Math.min(playT, T)); g.strokeStyle = C.ink; g.lineWidth = 1; g.globalAlpha = 0.55;
+    g.beginPath(); g.moveTo(xc, top); g.lineTo(xc, yb); g.stroke(); g.globalAlpha = 1;
+  }
+
+  function draw() {
+    if (!sim) return;
+    drawRig(); drawPlots();
+    $('clock').textContent = playT.toFixed(2) + ' s';
+    $('scrub').value = String(Math.round(1000 * playT / sim.t[sim.N]));
+  }
+  function tick(ts) {
+    if (!playing) return;
+    if (lastFrame && sim) { playT += ((ts - lastFrame) / 1000) * (+$('speed').value); if (playT > sim.t[sim.N]) playT = 0; draw(); }
+    lastFrame = ts; requestAnimationFrame(tick);
+  }
+  new ResizeObserver(() => draw()).observe($('plots'));
+  new MutationObserver(() => draw()).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', draw);
+  $('play').textContent = playing ? 'Pause' : 'Play';
+  writeControls(); recompute();
+  if (playing) requestAnimationFrame(tick);
+})();
+</script>
+
+</body>
+</html>

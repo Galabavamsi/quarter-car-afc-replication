@@ -1,0 +1,76 @@
+Phase 3 run started 07-Oct-2026 08:54:36 (quick=0)
+
+== 1. Transformed errors and V_i = eps_i^2/2 ==
+  calibrated max|zeta_i| = [0.504 0.157 0.012] (must stay < 1), max|eps_i| = [0.55 0.16 0.01]
+  calibrated samples with |zeta|>=1: 0.0%; of those, saturated: NaN%
+  v1         max|zeta_i| = [1.998 2.709 1.445] (must stay < 1), max|eps_i| = [9.56 9.56 9.56]
+  v1         samples with |zeta|>=1: 69.5%; of those, saturated: 100.0%
+  Lemma 2 check (calibrated, t>1 s): eps_M = [0.555 0.158 0.003] -> |zeta| <= tanh(eps_M) = [0.504 0.157 0.003]
+
+== 2. Frequency response ==
+  AFC Case A near the origin is the static law u = K x with K = [-510 -0.36 0 0 -2.7 0]
+  i.e. a skyhook spring of 63278 N/m and skyhook damper of 45 N s/m behind a pressure loop of 2.70 V/unit
+  passive           continuous closed-loop max Re(pole) = 0.00
+  AFC (linearised)  continuous closed-loop max Re(pole) = -1.71
+  LQR               continuous closed-loop max Re(pole) = -6.64
+  Skyhook           continuous closed-loop max Re(pole) = -3.71
+  Empirical |zs/zr| at 0.5 Hz: passive 1.222, AFC 0.221, LQR 0.383, skyhook 0.762
+  passive           mean |a_s/z_r| over 4-8 Hz (sampled, nonlinear): 245.7 1/s^2; residual (non-harmonic) zs RMS max 2.8e-06 m
+  AFC (linearised)  mean |a_s/z_r| over 4-8 Hz (sampled, nonlinear): 465.7 1/s^2; residual (non-harmonic) zs RMS max 0.0057 m
+  LQR               mean |a_s/z_r| over 4-8 Hz (sampled, nonlinear): 611.1 1/s^2; residual (non-harmonic) zs RMS max 0.047 m
+  Skyhook           mean |a_s/z_r| over 4-8 Hz (sampled, nonlinear): 552.0 1/s^2; residual (non-harmonic) zs RMS max 0.0047 m
+
+== 3. Effort/performance trade-off (Case 10) ==
+  LQR      q_z=100000     uRMS 0.97 V  IAE 1.4054  accRMS 0.758  viol 93.3 mm  sat 0%
+  LQR      q_z=1e+06      uRMS 0.27 V  IAE 0.7781  accRMS 0.438  viol 43.6 mm  sat 0%
+  LQR      q_z=1e+07      uRMS 0.18 V  IAE 0.4130  accRMS 0.269  viol 14.7 mm  sat 0%
+  LQR      q_z=1e+08      uRMS 0.39 V  IAE 0.2085  accRMS 0.174  viol 0.0 mm  sat 0%
+  LQR      q_z=1e+09      uRMS 0.53 V  IAE 0.1063  accRMS 0.155  viol 0.0 mm  sat 0%
+  LQR      q_z=1e+10      uRMS 0.65 V  IAE 0.0708  accRMS 0.230  viol 0.0 mm  sat 0%
+  Skyhook  c=1000,k=0     uRMS 1.66 V  IAE 0.5722  accRMS 0.626  viol 27.5 mm  sat 0%
+  Skyhook  c=1000,k=30000 uRMS 0.39 V  IAE 0.2192  accRMS 0.168  viol 0.0 mm  sat 0%
+  Skyhook  c=1000,k=100000 uRMS 0.53 V  IAE 0.0859  accRMS 0.114  viol 0.0 mm  sat 0%
+  Skyhook  c=3000,k=0     uRMS 0.32 V  IAE 0.4796  accRMS 0.276  viol 19.9 mm  sat 0%
+  Skyhook  c=3000,k=30000 uRMS 0.40 V  IAE 0.2111  accRMS 0.160  viol 0.0 mm  sat 0%
+  Skyhook  c=3000,k=100000 uRMS 0.53 V  IAE 0.0854  accRMS 0.105  viol 0.0 mm  sat 0%
+  Skyhook  c=8000,k=0     uRMS 0.55 V  IAE 0.2934  accRMS 0.188  viol 4.9 mm  sat 0%
+  Skyhook  c=8000,k=30000 uRMS 0.56 V  IAE 0.1828  accRMS 0.155  viol 0.0 mm  sat 0%
+  Skyhook  c=8000,k=100000 uRMS 0.70 V  IAE 0.0832  accRMS 0.128  viol 0.0 mm  sat 0%
+  AFC      k x0.25        uRMS 0.54 V  IAE 0.2942  accRMS 0.936  viol 7.1 mm  sat 0%
+  AFC      k x0.5         uRMS 4.61 V  IAE 0.5607  accRMS 10.643  viol 45.3 mm  sat 81%
+  AFC      k x1           uRMS 0.50 V  IAE 0.1294  accRMS 0.168  viol 0.0 mm  sat 0%
+  AFC      k x2           uRMS 4.94 V  IAE 0.6427  accRMS 14.249  viol 57.4 mm  sat 96%
+  AFC-B    Case B gains   uRMS 4.75 V  IAE 0.4590  accRMS 9.236  viol 45.2 mm  sat 85%
+  BSC      Case A         uRMS 4.98 V  IAE 0.6756  accRMS 16.616  viol 59.8 mm  sat 99%
+  PID      Case A         uRMS 4.98 V  IAE 0.8059  accRMS 23.099  viol 91.4 mm  sat 99%
+  Passive                 uRMS 0.00 V  IAE 0.6661  accRMS 0.393  viol 35.2 mm  sat 0%
+
+== 4. Monte Carlo robustness (calibrated plant, Case 10) ==
+  AFC      IAE median 0.1305 [0.1153, 0.5759]  bound kept 37/40  uRMS median 0.59 V  diverged 0
+  BSC      IAE median 0.7036 [0.5224, 0.8861]  bound kept 0/40  uRMS median 4.98 V  diverged 0
+  PID      IAE median 0.7426 [0.5274, 0.9185]  bound kept 0/40  uRMS median 4.97 V  diverged 0
+  Skyhook  IAE median 0.4317 [0.2693, 0.4859]  bound kept 0/40  uRMS median 0.44 V  diverged 0
+  (BSC is given the exact perturbed model: a best case for BSC.)
+
+== 5. Transient bump and ISO 8608 random road ==
+  Bump 50 mm x 2.5 m at 20 km/h
+    Passive  peak|zs| 57.5 mm  accRMS 0.617  accMAX 3.47  travel 49.0 mm  tire-load ratio 0.28  uRMS 0.00 V  sat 0%
+    AFC      peak|zs| 45.4 mm  accRMS 8.795  accMAX 17.95  travel 51.0 mm  tire-load ratio 1.77  uRMS 3.87 V  sat 59%
+    AFC-AW   peak|zs| 18.8 mm  accRMS 1.012  accMAX 5.83  travel 44.5 mm  tire-load ratio 0.73  uRMS 1.75 V  sat 0%
+    Skyhook  peak|zs| 27.0 mm  accRMS 0.419  accMAX 2.90  travel 34.6 mm  tire-load ratio 0.22  uRMS 0.99 V  sat 1%
+    LQR      peak|zs| 19.3 mm  accRMS 0.400  accMAX 2.56  travel 35.9 mm  tire-load ratio 0.29  uRMS 0.37 V  sat 0%
+    PID      peak|zs| 63.8 mm  accRMS 14.748  accMAX 34.69  travel 62.7 mm  tire-load ratio 3.37  uRMS 3.91 V  sat 60%
+  ISO 8608 class C at 54 km/h
+    Passive  peak|zs| 82.1 mm  accRMS 1.113  accMAX 11.19  travel 79.9 mm  tire-load ratio 2.76  uRMS 0.00 V  sat 0%
+    AFC      peak|zs| 121.5 mm  accRMS 13.202  accMAX 45.90  travel 63.5 mm  tire-load ratio 4.09  uRMS 4.74 V  sat 89%
+    AFC-AW   peak|zs| 80.3 mm  accRMS 4.293  accMAX 44.14  travel 75.0 mm  tire-load ratio 3.11  uRMS 1.03 V  sat 2%
+    Skyhook  peak|zs| 62.2 mm  accRMS 4.102  accMAX 46.65  travel 54.1 mm  tire-load ratio 3.23  uRMS 1.74 V  sat 9%
+    LQR      peak|zs| 114.2 mm  accRMS 25.976  accMAX 55.25  travel 31.5 mm  tire-load ratio 4.57  uRMS 4.96 V  sat 98%
+    PID      peak|zs| 141.2 mm  accRMS 30.654  accMAX 70.00  travel 37.8 mm  tire-load ratio 6.68  uRMS 4.98 V  sat 98%
+
+== 6. Extension: AFC with envelope relaxation (anti-windup), v1 plant ==
+  AFC     IAE 0.4849  accRMS 0.389  sat 85%  nominal-bound viol 18.9 mm  mean|du| 0.205 V/sample
+  AFC-AW  IAE 0.6383  accRMS 0.412  sat 4%  nominal-bound viol 35.8 mm  mean|du| 0.129 V/sample
+  max envelope relaxation rho = 7.95 (envelope widened by 795%)
+
+Done in 2458.8 s. Outputs in /tmp/claude-0/-home-claude/f666fb30-e981-50af-869f-677a379bda80/scratchpad/dev/results/phase3

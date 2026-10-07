@@ -1,0 +1,1 @@
+Simscape Multibody vs qc_simulate (Case 10, AFC A): max|dzs| = 2.09e-06 m; IAE 0.1294 vs 0.1294

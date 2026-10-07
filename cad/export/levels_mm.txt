@@ -1,0 +1,4 @@
+z_wheel_centre 715.0
+z_body 1075.0
+z_carrier_top 745.0
+z_platform 390.0

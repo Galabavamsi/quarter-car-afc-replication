@@ -1,0 +1,12 @@
+
+== Half car, road: bump (rear wheel delayed by (a+b)/v) ==
+  Passive              heave acc RMS 0.391  pitch acc RMS 0.431 rad/s^2  max pitch 1.94 deg  peak front 55.4 / rear 58.4 mm  bound viol 34.6 / 39.7 mm  sat 0%  uRMS 0.00 V
+  AFC (per corner)     heave acc RMS 6.591  pitch acc RMS 6.937 rad/s^2  max pitch 2.07 deg  peak front 71.0 / rear 40.7 mm  bound viol 53.0 / 22.7 mm  sat 64%  uRMS 4.06 V
+  AFC-AW (per corner)  heave acc RMS 1.281  pitch acc RMS 0.919 rad/s^2  max pitch 1.45 deg  peak front 65.7 / rear 16.1 mm  bound viol 45.4 / 0.0 mm  sat 0%  uRMS 1.33 V
+  Skyhook              heave acc RMS 0.325  pitch acc RMS 0.307 rad/s^2  max pitch 0.26 deg  peak front 11.8 / rear 11.5 mm  bound viol 0.0 / 0.0 mm  sat 1%  uRMS 1.31 V
+
+== Half car, road: case10 (rear wheel delayed by (a+b)/v) ==
+  Passive              heave acc RMS 0.281  pitch acc RMS 0.219 rad/s^2  max pitch 1.92 deg  peak front 61.1 / rear 59.0 mm  bound viol 37.5 / 34.9 mm  sat 0%  uRMS 0.00 V
+  AFC (per corner)     heave acc RMS 0.103  pitch acc RMS 0.106 rad/s^2  max pitch 0.75 deg  peak front 33.5 / rear 21.2 mm  bound viol 0.0 / 0.0 mm  sat 0%  uRMS 0.49 V
+  AFC-AW (per corner)  heave acc RMS 0.103  pitch acc RMS 0.106 rad/s^2  max pitch 0.75 deg  peak front 33.5 / rear 21.2 mm  bound viol 0.0 / 0.0 mm  sat 0%  uRMS 0.49 V
+  Skyhook              heave acc RMS 0.076  pitch acc RMS 0.054 rad/s^2  max pitch 0.20 deg  peak front 6.7 / rear 6.7 mm  bound viol 0.0 / 0.0 mm  sat 0%  uRMS 0.53 V

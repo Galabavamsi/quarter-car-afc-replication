@@ -1,0 +1,10 @@
+# Control-law cost, Na et al. AFC vs BSC vs PID (2026-10-07)
+## host (x86-64, gcc -O2)
+self-check: afc -1.412611304  bsc -29.00796731  pid -19.4
+host ns/call (double): AFC 68.4  BSC 15.8  PID 3.6
+self-check: afc -1.41261816  bsc -29.00797081  pid -19.39999962
+host ns/call (float): AFC 67.4  BSC 16.7  PID 4.0
+## Cortex-M4 under QEMU mps2-an386, -icount shift=0 (instruction counts)
+M4 double(soft): instr/tick 40.00 | instructions per call AFC 18070 AFCfast 11264 BSC 9275 PID 940 | self-check afc -1.41261
+M4 float(soft): instr/tick 40.00 | instructions per call AFC 9555 AFCfast 5446 BSC 4424 PID 713 | self-check afc -1.41262
+M4 float(FPU): instr/tick 40.00 | instructions per call AFC 811 AFCfast 429 BSC 206 PID 144 | self-check afc -1.41262

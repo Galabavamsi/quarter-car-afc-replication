@@ -1,0 +1,61 @@
+Phase 1 run started 07-Oct-2026 08:22:39 (quick=0)
+Platform: GNU Octave 8.4.0
+
+== 1. v1 baseline (equivalent actuator, Jin et al. masses) ==
+  AFC      IAE 0.4849  ITAE 4.8070  ITSE 0.1369  accRMS 0.3894  sat 85.4%  PPFviol 18.85 mm
+  BSC      IAE 0.5248  ITAE 5.2841  ITSE 0.1686  accRMS 0.3921  sat 99.9%  PPFviol 25.93 mm
+  PID      IAE 0.4698  ITAE 4.7166  ITSE 0.1309  accRMS 0.3676  sat 97.8%  PPFviol 19.67 mm
+  Passive  IAE 0.6709  ITAE 6.6983  ITSE 0.2784  accRMS 0.3965  sat 0.0%  PPFviol 35.88 mm
+  AFC without the +/-5 V rail: IAE 2.3665, max|zs| 0.231 m, max|u| 2064 V
+  Linearised 50 Hz loop at origin: spectral radius 1.0195 (stable < 1)
+  Equivalent linear AFC law: u = -510.0 zs -0.360 zsdot -2.70 x5
+  Continuous-equivalent poles: 0.96+8.31j, 0.96-8.31j, -7.72+0.00j, -12.72+72.28j, -12.72-72.28j
+  rho vs bu: bu=0.25:0.996  bu=0.5:1.010  bu=0.75:1.019  bu=1:1.026  bu=2:1.038  bu=5:1.043  bu=10:1.031  bu=20:1.012  bu=50:1.683  
+
+== 2. Calibration of the Alleyne-Hedrick plant to the paper's Case 10 AFC ==
+  Targets: IAE 0.1216, ITAE 1.1396, ITSE 0.0093 (Fig. 7), u_rms 0.50 V (Fig. 13, approx.)
+  Best grid point: tau = 0.0333 s, Kv = 5.0e-04 m/V, J = 0.0421 (mean |log ratio|)
+  qc_params('alleyne-cal') uses tau = 0.0333 s, Kv = 5.0e-04 m/V
+  With the literature spool constant tau = 0.003 s the best J is 0.620
+
+== 3. Case 10 comparison on the calibrated plant (paper gains, unchanged) ==
+  AFC      IAE 0.1294 (paper 0.1216)  ITAE 1.197 (1.140)  ITSE 0.0088 (0.0093)  accRMS 0.168 (1.665)  uRMS 0.50 (~0.5)  sat 0%  PPFviol 0.0 mm
+  BSC      IAE 0.6756 (paper 0.2108)  ITAE 6.864 (1.952)  ITSE 0.3101 (0.0224)  accRMS 16.616 (1.725)  uRMS 4.98 (~4.7)  sat 99%  PPFviol 59.8 mm
+  PID      IAE 0.8059 (paper 0.1881)  ITAE 8.829 (1.191)  ITSE 0.5517 (0.0219)  accRMS 23.099 (1.753)  uRMS 4.98 (~5.0)  sat 99%  PPFviol 91.4 mm
+  Passive  IAE 0.6661 (paper NaN)  ITAE 6.651 (NaN)  ITSE 0.2744 (NaN)  accRMS 0.393 (NaN)  uRMS 0.00 (~NaN)  sat 0%  PPFviol 35.2 mm
+  Simulated IAE ranking: AFC < BSC < PID   (paper: AFC < PID < BSC)
+
+== 4. Road sweep (Case B gains for 3-9 peaks, Case A for 10) ==
+   3 peaks: IAE AFC 0.108  BSC 0.712  PID 0.715 | AFC(A fixed) 0.066 | uRMS AFC 4.48 BSC 4.97 PID 4.93
+   4 peaks: IAE AFC 0.459  BSC 0.708  PID 0.714 | AFC(A fixed) 0.113 | uRMS AFC 4.79 BSC 4.97 PID 4.97
+   5 peaks: IAE AFC 0.166  BSC 0.724  PID 0.723 | AFC(A fixed) 0.117 | uRMS AFC 4.32 BSC 4.96 PID 4.93
+   6 peaks: IAE AFC 0.534  BSC 0.702  PID 0.722 | AFC(A fixed) 0.121 | uRMS AFC 4.87 BSC 4.97 PID 4.93
+   7 peaks: IAE AFC 0.166  BSC 0.697  PID 0.730 | AFC(A fixed) 0.124 | uRMS AFC 4.23 BSC 4.98 PID 4.91
+   8 peaks: IAE AFC 0.215  BSC 0.693  PID 0.753 | AFC(A fixed) 0.126 | uRMS AFC 4.36 BSC 4.98 PID 4.92
+   9 peaks: IAE AFC 0.170  BSC 0.689  PID 0.737 | AFC(A fixed) 0.127 | uRMS AFC 4.23 BSC 4.96 PID 4.92
+  10 peaks: IAE AFC 0.129  BSC 0.676  PID 0.806 | AFC(A fixed) 0.129 | uRMS AFC 0.50 BSC 4.98 PID 4.98
+  AFC has the lowest IAE on 8 of 8 roads (paper: all 8)
+  AFC lowest everywhere: 1
+
+  -- 4b. Joint fit (train roads 10/A and 6/B, test the other six) --
+   test   3 peaks: AFC IAE 0.111 (paper ~0.083)  uRMS 2.44 V (paper ~0.45)
+   test   4 peaks: AFC IAE 0.177 (paper ~0.085)  uRMS 1.54 V (paper ~0.42)
+   test   5 peaks: AFC IAE 0.185 (paper ~0.088)  uRMS 1.03 V (paper ~0.42)
+   TRAIN  6 peaks: AFC IAE 0.187 (paper ~0.102)  uRMS 0.47 V (paper ~0.47)
+   test   7 peaks: AFC IAE 0.191 (paper ~0.100)  uRMS 0.45 V (paper ~0.50)
+   test   8 peaks: AFC IAE 0.192 (paper ~0.127)  uRMS 0.49 V (paper ~0.58)
+   test   9 peaks: AFC IAE 0.194 (paper ~0.150)  uRMS 0.50 V (paper ~0.68)
+   TRAIN 10 peaks: AFC IAE 0.118 (paper ~0.122)  uRMS 0.63 V (paper ~0.50)
+   mean |log error|: train 0.218, test 0.629
+
+== 5. Feasibility maps (AFC Case A) ==
+  Calibrated plant: bound kept on 18 of 35 (valve-gain x frequency) cells
+  v1 plant:         bound kept on 0 of 35 (bu x frequency) cells
+
+== 6. Local stability of the sampled-data AFC loop (calibrated plant) ==
+  Calibrated loop: rho = 1.2051, poles 9.33+71.88j, 9.33-71.88j, -1.25+16.86j, -1.25-16.86j, -9.78+10.73j, -9.78-10.73j
+  rho vs tau: 0.003:2.940  0.010:2.173  0.020:1.515  0.033:1.205  0.050:1.076  0.100:1.004  
+  growth per 20 ms vs controller period Ts: 0.020:1.205  0.010:19.110  0.005:7.280  0.002:4.004  0.001:1.974  
+  Zero road, 1 mm initial offset: last-5 s max|zs| = 0.127 mm, u_rms = 2.53 V, acc_rms = 0.844 m/s^2 at 12.5 Hz
+
+Done in 1306.0 s. Outputs in /tmp/claude-0/-home-claude/f666fb30-e981-50af-869f-677a379bda80/scratchpad/dev/results/phase1

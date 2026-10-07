@@ -22,3 +22,14 @@ tmp/
 *.snm
 *.vrb
 *.synctex.gz
+
+# Locally installed tool bundles and the agent job queue (not part of the project)
+tools/*.mcpb
+agent_jobs/
+tools/mcp_logs/
+
+# Copies the Claude desktop app makes of files delivered in chat
+Claude outputs/
+
+# Regenerable MATLAB result dumps (summaries, CSVs and figures stay tracked)
+results/**/*.mat
