@@ -43,6 +43,8 @@
 body { background: var(--ground); color: var(--ink); font: 400 15px/1.5 var(--body); }
 .wrap { max-width: 1240px; margin: 0 auto; padding-inline: clamp(16px, 3vw, 32px); padding-block: 24px 40px; }
 header { display: grid; gap: 6px; margin-bottom: 20px; }
+.back { justify-self: start; font: 600 12px/1.2 var(--mono); letter-spacing: .06em; color: var(--afc); text-decoration: none; margin-bottom: 4px; }
+.back:hover { text-decoration: underline; }
 .eyebrow { font: 600 12px/1.2 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
 h1 { font: 700 clamp(34px, 5vw, 52px)/1 var(--display); letter-spacing: .01em; margin: 0; text-wrap: balance; }
 .lede { max-width: 68ch; color: var(--muted); margin: 4px 0 0; }
@@ -97,6 +99,7 @@ footer a { color: var(--afc); }
 
 <div class="wrap">
 <header>
+  <a class="back" href="index.html">← Project page: videos, findings, report</a>
   <div class="eyebrow">Na et al., IEEE TSMC 52(8), 2022 · interactive reproduction</div>
   <h1>Quarter-Car AFC Lab</h1>
   <p class="lede">Run the paper's approximation-free controller on an electro-hydraulic quarter car. The controller samples at 50&nbsp;Hz and the valve is limited to ±5&nbsp;V. The plant is integrated with RK4 using the same equations as the project's MATLAB library, so these numbers match <code>afc2</code> exactly.</p>

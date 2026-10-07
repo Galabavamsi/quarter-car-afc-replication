@@ -1,0 +1,11 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "rewrites": [
+    { "source": "/", "destination": "/web/index.html" }
+  ],
+  "redirects": [
+    { "source": "/lab", "destination": "/web/quarter_car_afc_lab.html", "permanent": false },
+    { "source": "/report", "destination": "/deliverables/QuarterCar_AFC_Report_v2.pdf", "permanent": false },
+    { "source": "/slides", "destination": "/deliverables/QuarterCar_AFC_Presentation_v2.pdf", "permanent": false }
+  ]
+}

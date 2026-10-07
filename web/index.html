@@ -1,0 +1,207 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Quarter-Car AFC Study</title>
+<meta name="description" content="Reproduction of Na et al. (IEEE TSMC 2022): approximation-free control of an electro-hydraulic quarter car, rebuilt in five implementations and tested. Videos, figures, report and an interactive lab.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Source+Sans+3:wght@400;600&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%230b6e7a'/%3E%3Cpath d='M6 22h20M9 9h14v5H9zM16 14v8' stroke='white' stroke-width='2.4' fill='none'/%3E%3C/svg%3E">
+<style>
+/* Same palette and type as the lab (quarter_car_afc_lab.html), so the two pages read as one site. */
+:root {
+  --ground: #edf1f4; --panel: #f8fafb; --ink: #15212b; --muted: #586976; --rule: #c9d3db;
+  --afc: #0b6e7a; --bound: #b3261e; --act: #b26b12; --ok: #2b7a4b;
+  --display: "Barlow Condensed", "Arial Narrow", "Roboto Condensed", sans-serif;
+  --body: "Source Sans 3", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+  --mono: "JetBrains Mono", "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --ground: #0e151c; --panel: #141e27; --ink: #e2e9ef; --muted: #93a3b1; --rule: #2b3a47;
+    --afc: #43b9c5; --bound: #e5574e; --act: #e0a24a; --ok: #4fb47c; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --ground: #0e151c; --panel: #141e27; --ink: #e2e9ef; --muted: #93a3b1; --rule: #2b3a47;
+  --afc: #43b9c5; --bound: #e5574e; --act: #e0a24a; --ok: #4fb47c; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body { margin: 0; background: var(--ground); color: var(--ink); font: 400 16px/1.55 var(--body); }
+a { color: var(--afc); }
+.wrap { max-width: 1180px; margin: 0 auto; padding-inline: clamp(16px, 3vw, 32px); padding-block: 28px 48px; }
+nav.top { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; font: 600 12px/1 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin-bottom: 28px; }
+nav.top a { color: var(--muted); text-decoration: none; }
+nav.top a:hover { color: var(--afc); }
+nav.top .links { display: flex; gap: 18px; flex-wrap: wrap; }
+header { display: grid; gap: 10px; margin-bottom: 26px; }
+.eyebrow { font: 600 12px/1.3 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+h1 { font: 700 clamp(38px, 6vw, 68px)/0.98 var(--display); letter-spacing: .005em; margin: 0; max-width: 18ch; text-wrap: balance; }
+.lede { max-width: 66ch; color: var(--muted); margin: 6px 0 0; font-size: 17px; }
+.actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px; }
+.btn { display: inline-flex; align-items: center; gap: 8px; font: 600 16px/1 var(--display); letter-spacing: .06em; text-transform: uppercase; padding: 11px 16px; border-radius: 4px; border: 1px solid var(--ink); color: var(--ink); text-decoration: none; background: transparent; }
+.btn.primary { background: var(--afc); border-color: var(--afc); color: var(--panel); }
+.btn:hover { border-color: var(--afc); color: var(--afc); }
+.btn.primary:hover { filter: brightness(1.08); color: var(--panel); }
+.btn:focus-visible, a:focus-visible, video:focus-visible { outline: 2px solid var(--afc); outline-offset: 3px; }
+.hero { background: var(--panel); border: 1px solid var(--rule); border-radius: 8px; overflow: hidden; }
+.hero video { display: block; width: 100%; height: auto; aspect-ratio: 1600 / 720; background: #dfe3e6; }
+.hero figcaption { padding: 12px 16px 14px; font-size: 14px; color: var(--muted); border-top: 1px solid var(--rule); }
+.hero figcaption strong { color: var(--ink); }
+.readout { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 1px; background: var(--rule); border: 1px solid var(--rule); border-radius: 8px; overflow: hidden; margin: 22px 0 8px; }
+.cell { background: var(--panel); padding: 12px 14px; display: grid; gap: 3px; align-content: start; }
+.cell .k { font: 600 11px/1.3 var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.cell .v { font: 600 24px/1.1 var(--mono); font-variant-numeric: tabular-nums; }
+.cell .u { font: 400 12px/1.35 var(--mono); color: var(--muted); }
+.cell .v.good { color: var(--ok); } .cell .v.bad { color: var(--bound); }
+section { margin-top: 44px; }
+h2 { font: 700 clamp(26px, 3.4vw, 34px)/1.05 var(--display); letter-spacing: .02em; margin: 0 0 6px; }
+.sub { color: var(--muted); margin: 0 0 18px; max-width: 70ch; }
+.grid2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+.grid3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; }
+@media (max-width: 900px) { .grid3 { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 760px) { .grid2 { grid-template-columns: minmax(0, 1fr); } }
+figure { margin: 0; }
+.card { background: var(--panel); border: 1px solid var(--rule); border-radius: 8px; overflow: hidden; display: grid; grid-template-rows: auto 1fr; }
+.card video, .card img { display: block; width: 100%; height: auto; }
+.card video { background: #dfe3e6; }
+.card .shot { background: #fff; padding: 8px; border-bottom: 1px solid var(--rule); }
+.card figcaption { padding: 12px 14px 14px; font-size: 14px; color: var(--muted); }
+.card figcaption strong { display: block; color: var(--ink); font: 600 18px/1.15 var(--display); letter-spacing: .03em; margin-bottom: 4px; }
+ol.findings { list-style: none; counter-reset: f; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1px; background: var(--rule); border: 1px solid var(--rule); border-radius: 8px; overflow: hidden; }
+@media (max-width: 760px) { ol.findings { grid-template-columns: minmax(0, 1fr); } }
+ol.findings li { counter-increment: f; background: var(--panel); padding: 14px 16px 16px; display: grid; gap: 4px; }
+ol.findings li::before { content: "0" counter(f); font: 600 12px var(--mono); color: var(--afc); letter-spacing: .08em; }
+ol.findings b { font: 600 19px/1.15 var(--display); letter-spacing: .03em; }
+ol.findings p { margin: 0; font-size: 15px; color: var(--muted); }
+.tablewrap { overflow-x: auto; background: var(--panel); border: 1px solid var(--rule); border-radius: 8px; }
+table { border-collapse: collapse; width: 100%; font-size: 15px; min-width: 560px; }
+th, td { text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--rule); vertical-align: top; }
+th { font: 600 12px var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+tr:last-child td { border-bottom: 0; }
+td.num { font: 600 14px var(--mono); white-space: nowrap; }
+.morelinks { display: flex; flex-wrap: wrap; gap: 8px 18px; margin-top: 12px; font: 400 14px var(--mono); }
+footer { margin-top: 48px; padding-top: 18px; border-top: 1px solid var(--rule); font-size: 14px; color: var(--muted); display: grid; gap: 6px; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<nav class="top" aria-label="Site">
+  <span>ACT course project · 2026</span>
+  <span class="links">
+    <a href="#videos">Videos</a>
+    <a href="#findings">Findings</a>
+    <a href="#figures">Figures</a>
+    <a href="../web/quarter_car_afc_lab.html">Lab</a>
+    <a href="https://github.com/Galabavamsi/quarter-car-afc-replication">GitHub</a>
+  </span>
+</nav>
+
+<header>
+  <div class="eyebrow">Na et al., IEEE TSMC 52(8), 2022 · reproduction, diagnosis, extensions</div>
+  <h1>Approximation-free active suspension, rebuilt and tested</h1>
+  <p class="lede">The paper keeps a car body inside a shrinking performance envelope with a three-step, model-free controller on an electro-hydraulic rig. We rebuilt it on a calibrated hydraulic quarter car, checked the code five independent ways, and stress-tested the claims with control theory, fair comparators and road transients. Everything here is simulation.</p>
+  <div class="actions">
+    <a class="btn primary" href="../web/quarter_car_afc_lab.html">Open the interactive lab →</a>
+    <a class="btn" href="../deliverables/QuarterCar_AFC_Report_v2.pdf">Report (PDF)</a>
+    <a class="btn" href="../deliverables/QuarterCar_AFC_Presentation_v2.pdf">Slides (PDF)</a>
+    <a class="btn" href="https://github.com/Galabavamsi/quarter-car-afc-replication">Source</a>
+  </div>
+</header>
+
+<figure class="hero">
+  <video src="../cad/rig_bump_compare.mp4" poster="../media/rig_bump_compare.jpg" controls muted loop playsinline preload="metadata" aria-label="Two simulated test rigs driving over a 50 millimetre bump"></video>
+  <figcaption><strong>50&nbsp;mm bump at 20&nbsp;km/h.</strong> Left: the paper's AFC hits its envelope, switches the valve rail to rail and the tyre load reaches 1.77× static, so the wheel leaves the road. Right: our envelope relaxation keeps the command off the rails (tyre load 0.73×). FreeCAD rig rendered in Blender from simulated trajectories; motion ×4, played 2× slower.</figcaption>
+</figure>
+
+<div class="readout" role="list" aria-label="Key numbers">
+  <div class="cell" role="listitem"><span class="k">Case-10 AFC IAE</span><span class="v">0.129</span><span class="u">m·s · paper 0.122</span></div>
+  <div class="cell" role="listitem"><span class="k">AFC command</span><span class="v">0.50 V</span><span class="u">RMS · paper ≈ 0.5 V</span></div>
+  <div class="cell" role="listitem"><span class="k">Hold-out error</span><span class="v bad">0.63</span><span class="u">test vs 0.22 train</span></div>
+  <div class="cell" role="listitem"><span class="k">Simulink vs code</span><span class="v good">4e-16 m</span><span class="u">max body-position gap</span></div>
+  <div class="cell" role="listitem"><span class="k">Multibody vs code</span><span class="v good">2.1 µm</span><span class="u">mechanics from joints</span></div>
+  <div class="cell" role="listitem"><span class="k">Bump tyre load</span><span class="v">1.77× → 0.73×</span><span class="u">paper AFC → AFC-AW</span></div>
+</div>
+
+<section id="videos">
+  <h2>Videos</h2>
+  <p class="sub">All motion is simulated: the calibrated hydraulic quarter car driven over the same 50&nbsp;mm bump, with vertical motion exaggerated four times so centimetre-level movement is visible.</p>
+  <div class="grid2">
+    <figure class="card">
+      <video src="../animation/quarter_car_bump.mp4" poster="../media/quarter_car_bump.jpg" controls muted loop playsinline preload="none" aria-label="Schematic quarter cars: passive, AFC and AFC with envelope relaxation"></video>
+      <figcaption><strong>Schematic: passive, AFC, AFC-AW</strong>Red bars are the prescribed bound ±μ₁(t); the readout shows each controller's valve command. Paper AFC switches between the ±5&nbsp;V rails through the bump; the relaxed version never saturates.</figcaption>
+    </figure>
+    <div class="grid2" style="gap:18px">
+      <figure class="card">
+        <video src="../cad/rig_bump_afc.mp4" poster="../media/rig_bump_afc.jpg" controls muted loop playsinline preload="none" aria-label="Test rig with the paper's AFC on a bump"></video>
+        <figcaption><strong>Rig: paper AFC</strong>Case-A gains, unchanged.</figcaption>
+      </figure>
+      <figure class="card">
+        <video src="../cad/rig_bump_afc_aw.mp4" poster="../media/rig_bump_afc_aw.jpg" controls muted loop playsinline preload="none" aria-label="Test rig with AFC plus envelope relaxation on a bump"></video>
+        <figcaption><strong>Rig: AFC-AW</strong>Envelope widens while the valve saturates.</figcaption>
+      </figure>
+    </div>
+  </div>
+</section>
+
+<section id="findings">
+  <h2>What we found</h2>
+  <p class="sub">Each number in the report is tagged as printed in the paper, read off a paper plot, calibrated, assumed, or simulated by us.</p>
+  <ol class="findings">
+    <li><b>The paper's AFC reproduces, on the right plant</b><p>Two fitted factors (valve gain 5×10⁻⁴&nbsp;m/V, 33&nbsp;ms lumped lag) on a standard hydraulic quarter car give IAE 0.129, ITAE 1.20, ITSE 0.0088 against the paper's 0.122, 1.14, 0.0093, with the gains unchanged. BSC and PID saturate, as reported.</p></li>
+    <li><b>But the rig can't be identified</b><p>The paper's slower-road gains fail a hold-out test: a joint fit across both gain sets has test error 0.63. Its pressure scaling, valve gain and lag are unpublished, and they decide the outcome.</p></li>
+    <li><b>Our first model failed for a different reason</b><p>On the v1 plant the 50&nbsp;Hz loop is locally unstable (spectral radius 1.02). Removing the ±5&nbsp;V rail makes it worse, so saturation was a symptom, not the cause.</p></li>
+    <li><b>The proof holds where its assumptions do</b><p>Lemma 1's bound is tight while the valve is unsaturated and fails exactly where it saturates. The continuous loop is stable, yet every zero-order-hold implementation we tried (1–20&nbsp;ms) is locally unstable through an 88&nbsp;Hz hydraulic mode.</p></li>
+    <li><b>Near zero error, AFC is a skyhook spring</b><p>About 63&nbsp;kN/m with little damping: strong at the road frequency, worse than passive in the 4–8&nbsp;Hz comfort band. At equal effort, LQR and skyhook match or beat it.</p></li>
+    <li><b>One extra state fixes the bump</b><p>Letting the envelope widen while the valve saturates removes rail-to-rail switching in the quarter car and the half car, and leaves Case 10 untouched.</p></li>
+  </ol>
+</section>
+
+<section id="figures">
+  <h2>Figures</h2>
+  <p class="sub">From the MATLAB R2026a run; every figure is regenerated by <code>run_phase1</code>–<code>run_phase3b</code>.</p>
+  <div class="grid2">
+    <figure class="card"><div class="shot"><img src="../results/phase1/fig_case10_displacement.png" alt="Body displacement of AFC, BSC, PID and passive against the shrinking prescribed bound" loading="lazy" width="1147" height="806"></div><figcaption><strong>Case 10 against the envelope</strong>AFC stays inside the shrinking bound; BSC and PID with the paper's gains chatter against the rails.</figcaption></figure>
+    <figure class="card"><div class="shot"><img src="../results/phase2b/fig_multibody_crosscheck.png" alt="Simscape Multibody and hand-written equations give identical body displacement" loading="lazy" width="1562" height="1029"></div><figcaption><strong>Independent physics agrees</strong>Simscape Multibody builds the mechanics from joints; it matches our equations to 2.1&nbsp;µm.</figcaption></figure>
+    <figure class="card"><div class="shot"><img src="../results/phase3/fig_bump_iso.png" alt="Bump and ISO 8608 road responses for six controllers" loading="lazy" width="1205" height="1057"></div><figcaption><strong>Transients</strong>Bump and ISO 8608 class-C road: displacement, acceleration and command for passive, AFC, AFC-AW, skyhook, LQR and PID.</figcaption></figure>
+    <figure class="card"><div class="shot"><img src="../results/phase2/simulink_v2_ideal.png" alt="Simulink block diagram of the digital AFC controller and servo-valve plant" loading="lazy" width="3122" height="1383"></div><figcaption><strong>Simulink v2 model</strong>50&nbsp;Hz digital controller with sensor path, ±5&nbsp;V rail and servo-valve plant; matches the code to 4×10⁻¹⁶&nbsp;m.</figcaption></figure>
+  </div>
+</section>
+
+<section id="implementations">
+  <h2>Five implementations, one answer</h2>
+  <p class="sub">Before trusting any number, the same equations were rebuilt independently and compared.</p>
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>Implementation</th><th>What it adds</th><th>Agreement with the MATLAB library</th></tr></thead>
+      <tbody>
+        <tr><td>Simulink v2</td><td>block diagram, 50&nbsp;Hz digital controller, sensor noise path</td><td class="num">4×10⁻¹⁶ m</td></tr>
+        <tr><td>Simscape Multibody</td><td>mechanics from prismatic joints, not our equations</td><td class="num">2.1 µm</td></tr>
+        <tr><td>C on Cortex-M4 (QEMU)</td><td>instruction counts for the paper's timing claim</td><td class="num">10 digits</td></tr>
+        <tr><td>Browser lab (this site)</td><td>interactive teaching tool</td><td class="num">IAE to 4 digits</td></tr>
+        <tr><td>GNU Octave 8.4</td><td>runs without a MATLAB licence</td><td class="num">same digits*</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="sub" style="margin-top:8px;font-size:14px">* except a few runs riding the ±5&nbsp;V rail, where the locally unstable loop amplifies rounding differences.</p>
+  <div class="morelinks">
+    <a href="https://github.com/Galabavamsi/quarter-car-afc-replication#readme">README</a>
+    <a href="https://github.com/Galabavamsi/quarter-car-afc-replication/blob/main/Presentation_Notes_v2.md">Speaker notes</a>
+    <a href="../cad/export/quarter_car_rig.step">Rig CAD (STEP)</a>
+    <a href="../deliverables/QuarterCar_AFC_Research_Report.pdf">v1 report</a>
+  </div>
+</section>
+
+<footer>
+  <div>Source paper: J. Na, Y. Huang, X. Wu, Y.-J. Liu, Y. Li and G. Li, “Active Suspension Control of Quarter-Car System With Experimental Validation,” <em>IEEE Trans. Syst., Man, Cybern.: Syst.</em> 52(8), 4714–4726, 2022. <a href="https://doi.org/10.1109/TSMC.2021.3103807">doi:10.1109/TSMC.2021.3103807</a></div>
+  <div>Simulation study for an Advanced Control Theory course; not the authors' hardware experiment. Code and data: <a href="https://github.com/Galabavamsi/quarter-car-afc-replication">github.com/Galabavamsi/quarter-car-afc-replication</a>.</div>
+</footer>
+
+</div>
+</body>
+</html>
