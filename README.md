@@ -4,6 +4,8 @@
 
 **Status (October 2026):** an Advanced Control Theory course project, simulation only. The **v2 study** is the current one. On a literature hydraulic quarter car calibrated to one paper experiment, it reproduces the paper's Case-10 AFC result within 7%. It then tests the paper's claims with control-theoretic analysis, fair comparators, robustness and transient studies, and an anti-windup extension. All figures and numbers come from a MATLAB R2026a run that takes about four minutes. The v1 baseline is kept unchanged [below](#v1-baseline).
 
+**Live site: [quarter-car-afc.vercel.app](https://quarter-car-afc.vercel.app)**. It has the videos, key figures, the [interactive lab](https://quarter-car-afc.vercel.app/lab), the [report](https://quarter-car-afc.vercel.app/report) and the [slides](https://quarter-car-afc.vercel.app/slides).
+
 ![Case 10 on the calibrated plant: AFC stays inside the prescribed envelope while BSC and PID saturate](results/phase1/fig_case10_displacement.png)
 
 > **Evidence boundary:** paper-reported measurements and our simulations are different evidence. Every number in the v2 report is tagged as *Paper*, *Approx.* (read off a paper plot), *Calibrated*, *Assumed* or *Sim*. The paper does not publish its rig's pressure scaling, valve gain or lag, so the comparison is at the level of trends, not digits.
@@ -15,9 +17,21 @@
 | [Report v2](deliverables/QuarterCar_AFC_Report_v2.pdf) | 10-page study: method, calibration, hold-out, theory audit, comparators, extensions, verdicts on each claim |
 | [Slides v2](deliverables/QuarterCar_AFC_Presentation_v2.pdf) | 19-slide talk, with [speaker notes](Presentation_Notes_v2.md) |
 | [`README_v2.md`](README_v2.md) | v2 run guide, findings and file layout |
-| [Web lab](web/quarter_car_afc_lab.html) | interactive simulator running the same equations in the browser (open the file) |
-| [`cad/`](cad/), [`animation/`](animation/) | FreeCAD rig (STEP/STL) and Blender animations driven by simulated trajectories |
+| [Web lab](https://quarter-car-afc.vercel.app/lab) | interactive simulator running the same equations in the browser ([source](web/quarter_car_afc_lab.html); also works opened locally) |
+| [Project site](https://quarter-car-afc.vercel.app) | static page with videos, figures and links ([`web/index.html`](web/index.html)), deployed by Vercel from this repo on every push to `main` |
+| [`cad/`](cad/), [`animation/`](animation/) | FreeCAD rig (STEP/STL) and Blender animations driven by simulated trajectories (see [Videos](#videos)) |
 | v1 [report](deliverables/QuarterCar_AFC_Research_Report.pdf) and [slides](deliverables/QuarterCar_AFC_Presentation.pdf) | the first-stage study, kept for reference |
+
+## Videos
+
+Both videos show the calibrated hydraulic quarter car on a 50 mm bump at 20 km/h, with motion exaggerated ×4 and played 2× slower. The previews below are GIFs; click one for the MP4, or [watch on the site](https://quarter-car-afc.vercel.app/#videos).
+
+| CAD test rig: paper AFC (left) vs envelope relaxation (right) | Schematic: passive, paper AFC, AFC-AW |
+| --- | --- |
+| [![Two simulated test rigs on a 50 mm bump](media/rig_bump_compare.gif)](cad/rig_bump_compare.mp4) | [![Three schematic quarter cars on a 50 mm bump](media/quarter_car_bump.gif)](animation/quarter_car_bump.mp4) |
+| The paper's AFC switches the valve rail to rail and the tyre load reaches 1.77× static. The relaxed envelope never saturates (0.73×). | Red bars show the prescribed bound ±μ₁(t); the readout gives each controller's valve command. |
+
+Single-rig renders: [`cad/rig_bump_afc.mp4`](cad/rig_bump_afc.mp4) and [`cad/rig_bump_afc_aw.mp4`](cad/rig_bump_afc_aw.mp4). The FreeCAD rig is rendered by [`cad/render_rig.py`](cad/render_rig.py) and the schematic by [`animation/build_quarter_car_scene.py`](animation/build_quarter_car_scene.py). Both are driven by `animation/anim_bump.csv`, which `export_animation_data()` writes.
 
 ## Main findings (v2)
 
@@ -53,6 +67,8 @@ run_phase3b();  % half car                                                      
 ```
 
 Every number in the report is printed to a `*_summary.txt` file in those folders. The `.mat` result files are not committed; rerun the scripts to regenerate them. Without MATLAB, the library and phases 1, 2 (minus Simulink), 3 and 3b run in GNU Octave; the Simulink and Multibody models need MATLAB. To run jobs headless, use `matlab -batch "addpath('tools'); qc_agent_runner drain"`, which executes `.m` files dropped into `agent_jobs/inbox/`. Rebuild the PDFs with `pdflatex` (twice) on `QuarterCar_AFC_Report_v2.tex` and `QuarterCar_AFC_Presentation_v2.tex`. They take figures from `results/` and fall back to `results_octave/`.
+
+**Website:** the site is static, with no build step. [`vercel.json`](vercel.json) serves `web/index.html` at `/` and redirects `/lab`, `/report` and `/slides`. The pages link to the videos, PDFs and figures in place, so pushing new results to `main` updates the live site.
 
 ## Open problems
 

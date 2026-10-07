@@ -46,6 +46,7 @@ Every number in the report is printed to a `*_summary.txt` file by these scripts
 ## Tools
 
 * **FreeCAD:** open `cad/quarter_car_rig.FCMacro` (Macro → Macros… → Execute). It builds the parametric rig and exports `cad/export/*.stl` and `quarter_car_rig.step`.
+* **Web:** the project site and interactive lab are live at https://quarter-car-afc.vercel.app (lab at `/lab`). The sources are `web/index.html` and `web/quarter_car_afc_lab.html`; both also work opened locally.
 * **Blender:** in the Scripting tab, run `animation/build_quarter_car_scene.py` (schematic, 3 controllers side by side) or `cad/render_rig.py` (CAD rig). Both can also run headless, e.g. `blender --background --python cad/render_rig.py -- --csv ../animation/anim_bump.csv --ctrl afc --out rig_bump_afc.mp4`.
 * **Web lab:** open `web/quarter_car_afc_lab.html` in a browser.
 
