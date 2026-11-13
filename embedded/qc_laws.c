@@ -77,3 +77,44 @@ real afc_fast_step(afc_fast_t *s, const real x[6])
     }
     return v;
 }
+
+real amc_afc_law(amc_afc_t *c, real t, const real x[6])
+{
+    real mu0 = (c->c.mu0[0] - c->c.muinf[0]) * EXP(-c->c.alpha[0] * t) + c->c.muinf[0];
+    mu0 *= ((real)1.0 + c->rho);
+    
+    /* Stage 1: displacement */
+    real z1 = x[0] / mu0;
+    if (z1 < -c->c.delta + c->c.guard) z1 = -c->c.delta + c->c.guard;
+    if (z1 > c->c.dbar - c->c.guard) z1 = c->c.dbar - c->c.guard;
+    real eps1 = (real)0.5 * LOG((c->c.delta + z1) / (c->c.dbar - z1));
+    real u1 = -c->c.k[0] * eps1;
+    
+    /* Stage 2: velocity with skyhook damping injection */
+    real mu1 = (c->c.mu0[1] - c->c.muinf[1]) * EXP(-c->c.alpha[1] * t) + c->c.muinf[1];
+    real z2 = (x[1] - u1) / mu1;
+    if (z2 < -c->c.delta + c->c.guard) z2 = -c->c.delta + c->c.guard;
+    if (z2 > c->c.dbar - c->c.guard) z2 = c->c.dbar - c->c.guard;
+    real eps2 = (real)0.5 * LOG((c->c.delta + z2) / (c->c.dbar - z2));
+    real u2 = -c->c.k[1] * eps2 - c->kv * x[1];
+    
+    /* Stage 3: hydraulic pressure tracking */
+    real mu2 = (c->c.mu0[2] - c->c.muinf[2]) * EXP(-c->c.alpha[2] * t) + c->c.muinf[2];
+    real z3 = (x[4] - u2) / mu2;
+    if (z3 < -c->c.delta + c->c.guard) z3 = -c->c.delta + c->c.guard;
+    if (z3 > c->c.dbar - c->c.guard) z3 = c->c.dbar - c->c.guard;
+    real eps3 = (real)0.5 * LOG((c->c.delta + z3) / (c->c.dbar - z3));
+    real u_raw = -c->c.k[2] * eps3;
+    
+    /* Dynamic anti-windup & rattle-space breathing */
+    real au = (u_raw < 0) ? -u_raw : u_raw;
+    real excess = (au > (real)5.0) ? (au - (real)5.0) / (real)5.0 : 0;
+    real travel = x[0] - x[2];
+    if (travel < 0) travel = -travel;
+    real stroke_excess = (travel > c->d_safe) ? (travel - c->d_safe) / (c->d_max - c->d_safe) : 0;
+    c->rho += (real)0.02 * (-c->ell * c->rho + c->gam * excess + c->gam_d * stroke_excess);
+    if (c->rho < 0) c->rho = 0;
+    
+    return u_raw;
+}
+

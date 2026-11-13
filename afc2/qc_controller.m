@@ -23,6 +23,13 @@ switch C.type
         excess = max(abs(u) - P.sim.Vmax, 0) / P.sim.Vmax;
         C.rho = max(0, C.rho + P.sim.Ts * (-C.ell * C.rho + C.gam * excess));
         info.rho = C.rho;
+    case 'amc_afc'
+        [u, info] = qc_amc_afc(C, t, x);
+        excess = max(abs(u) - P.sim.Vmax, 0) / P.sim.Vmax;
+        travel = abs(x(1) - x(3));
+        stroke_excess = max(travel - C.d_safe, 0) / (C.d_max - C.d_safe);
+        C.rho = max(0, C.rho + P.sim.Ts * (-C.ell * C.rho + C.gam * excess + C.gam_d * stroke_excess));
+        info.rho = C.rho;
     case 'lqr'
         u = -C.K * x(1:C.n);
     case 'skyhook'

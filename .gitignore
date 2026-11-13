@@ -22,6 +22,8 @@ tmp/
 *.snm
 *.vrb
 *.synctex.gz
+*.o
+embedded/bench_host
 
 # Locally installed tool bundles and the agent job queue (not part of the project)
 tools/*.mcpb

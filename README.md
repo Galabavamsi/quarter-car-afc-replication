@@ -64,6 +64,12 @@ run_phase2();   % builds QuarterCar_AFC_v2.slx and cross-checks it, sensing path
 run_phase2b();  % builds QuarterCar_Multibody.slx and cross-checks it                             -> results/phase2b/
 run_phase3();   % Lyapunov audit, frequency response, LQR/skyhook, Monte Carlo, bump/ISO, AFC-AW -> results/phase3/
 run_phase3b();  % half car                                                                        -> results/phase3b/
+run_phase4();   % novel AMC-AFC comparative benchmark (damping, rattle space, anti-sat, stability)-> results/phase4/
+```
+
+To run the standalone Python comparative benchmark and generate all publication-grade figures without MATLAB:
+```bash
+python3 tools/run_comparative_study.py
 ```
 
 Every number in the report is printed to a `*_summary.txt` file in those folders. The `.mat` result files are not committed; rerun the scripts to regenerate them. Without MATLAB, the library and phases 1, 2 (minus Simulink), 3 and 3b run in GNU Octave; the Simulink and Multibody models need MATLAB. To run jobs headless, use `matlab -batch "addpath('tools'); qc_agent_runner drain"`, which executes `.m` files dropped into `agent_jobs/inbox/`. Rebuild the PDFs with `pdflatex` (twice) on `QuarterCar_AFC_Report_v2.tex` and `QuarterCar_AFC_Presentation_v2.tex`. They take figures from `results/` and fall back to `results_octave/`.

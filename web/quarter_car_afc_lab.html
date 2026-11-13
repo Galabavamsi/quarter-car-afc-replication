@@ -119,6 +119,7 @@ footer a { color: var(--afc); }
           <option value="afc|A">AFC, paper Case A gains</option>
           <option value="afc|B">AFC, paper Case B gains</option>
           <option value="afc_aw|A">AFC + anti-windup (our extension)</option>
+          <option value="amc_afc|A">AMC-AFC (novel: damping + anti-sat + stroke)</option>
           <option value="skyhook|A">Skyhook spring + damper</option>
           <option value="pid|A">PID, paper gains</option>
           <option value="passive|A">Passive (no actuator)</option>
@@ -260,6 +261,22 @@ const QC = (() => {
     return [v, zeta];
   }
 
+  function amcAfcLaw(c, t, x, rho, kv) {
+    const k3 = 120 * (c.kscale ?? 1);
+    const mu0 = ((c.mu0[0] - c.muinf[0]) * Math.exp(-c.alpha[0] * t) + c.muinf[0]) * (1 + rho);
+    const z1 = Math.min(Math.max(x[0] / mu0, -1 + 1e-8), 1 - 1e-8);
+    const u1 = -c.k[0] * 0.5 * Math.log((1 + z1) / (1 - z1));
+
+    const mu1 = (c.mu0[1] - c.muinf[1]) * Math.exp(-c.alpha[1] * t) + c.muinf[1];
+    const z2 = Math.min(Math.max((x[1] - u1) / mu1, -1 + 1e-8), 1 - 1e-8);
+    const u2 = -c.k[1] * 0.5 * Math.log((1 + z2) / (1 - z2)) - kv * x[1];
+
+    const mu2 = (c.mu0[2] - c.muinf[2]) * Math.exp(-c.alpha[2] * t) + c.muinf[2];
+    const z3 = Math.min(Math.max((x[4] - u2) / mu2, -1 + 1e-8), 1 - 1e-8);
+    const ur = -k3 * 0.5 * Math.log((1 + z3) / (1 - z3));
+    return [ur, [z1, z2, z3]];
+  }
+
   // cfg: {plant, ctrl:{type, variant, kscale, mu1inf, alpha1}, road:{...}, T, Kscale, tau}
   function simulate(cfg) {
     const p = Object.assign({}, PLANTS[cfg.plant]);
@@ -268,7 +285,7 @@ const QC = (() => {
     const Ts = 0.02, T = cfg.T ?? 20, N = Math.round(T / Ts), sub = Math.max(1, Math.round(Ts / p.h)), h = Ts / sub;
     const R = road(cfg.road), ct = cfg.ctrl.type, passive = ct === 'passive';
     const base = AFC[cfg.ctrl.variant ?? 'A'];
-    const c = { mu0: base.mu0.slice(), muinf: base.muinf.slice(), alpha: base.alpha.slice(), k: base.k.map(k => k * (cfg.ctrl.kscale ?? 1)) };
+    const c = { mu0: base.mu0.slice(), muinf: base.muinf.slice(), alpha: base.alpha.slice(), k: base.k.map(k => k * (cfg.ctrl.kscale ?? 1)), kscale: cfg.ctrl.kscale ?? 1 };
     if (cfg.ctrl.mu1inf != null) { c.muinf[0] = cfg.ctrl.mu1inf; c.mu0[0] = Math.max(c.mu0[0], c.muinf[0] * 1.5); }
     if (cfg.ctrl.alpha1 != null) c.alpha[0] = cfg.ctrl.alpha1;
     const x = new Float64Array(6), k1 = new Float64Array(6), k2 = new Float64Array(6), k3 = new Float64Array(6), k4 = new Float64Array(6), tmp = new Float64Array(6);
@@ -285,6 +302,12 @@ const QC = (() => {
       if (ct === 'afc' || ct === 'afc_aw') {
         const [v] = afcLaw(c, t, x, ct === 'afc_aw' ? rho : 0); ur = v;
         if (ct === 'afc_aw') rho = Math.max(0, rho + Ts * (-0.5 * rho + 5 * Math.max(Math.abs(ur) - Vmax, 0) / Vmax));
+      } else if (ct === 'amc_afc') {
+        const kv = 4.5;
+        const [v] = amcAfcLaw(c, t, x, rho, kv); ur = v;
+        const travel = Math.abs(x[0] - x[2]);
+        const strokeExcess = Math.max(travel - 0.055, 0) / 0.025;
+        rho = Math.max(0, rho + Ts * (-0.5 * rho + 5.0 * Math.max(Math.abs(ur) - Vmax, 0) / Vmax + 3.0 * strokeExcess));
       } else if (ct === 'skyhook') {
         ur = -2.7 * (x[4] - p.kappa * (-4000 * x[1] - 1e5 * x[0]) / p.A);
       } else if (ct === 'pid') {
