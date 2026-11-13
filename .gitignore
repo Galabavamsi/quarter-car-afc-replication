@@ -33,5 +33,9 @@ tools/mcp_logs/
 # Copies the Claude desktop app makes of files delivered in chat
 Claude outputs/
 
+# Python bytecode caches
+__pycache__/
+*.pyc
+
 # Regenerable MATLAB result dumps (summaries, CSVs and figures stay tracked)
 results/**/*.mat

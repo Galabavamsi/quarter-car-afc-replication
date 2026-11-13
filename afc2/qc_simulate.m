@@ -143,7 +143,11 @@ if ~diverged
     u(end) = u(end - 1);
     uraw(end) = uraw(end - 1);
     if isAfc
-        [~, info] = qc_afc(C, t(end), x(:, end));
+        if strcmp(C.type, 'amc_afc')
+            [~, info] = qc_amc_afc(C, t(end), x(:, end));
+        else
+            [~, info] = qc_afc(C, t(end), x(:, end));
+        end
         zeta(:, end) = info.zeta;
         epsv(:, end) = info.eps;
         muv(:, end) = info.mu;

@@ -16,16 +16,20 @@ Keep one distinction explicit throughout: numbers **printed in the paper**, numb
 12. **Sampled data.** The continuous loop is stable, but every zero-order hold we tried is unstable, because an 88 Hz hydraulic mode loses its damping. The nonlinear system settles into a bounded oscillation. That is consistent with the Lemma, but a continuous-time proof doesn't cover the digital controller.
 13. **Fair comparators.** At the same voltage, skyhook and LQR do better. Halving the AFC gains makes things worse, because the error reaches the barrier zone where the effective gain blows up.
 14. **Robustness and transients.** Monte Carlo: AFC usually keeps the bound, but its failures are abrupt. On a bump the paper's AFC saturates and the wheel leaves the road.
-15. **Extension.** One extra state lets the envelope widen while the valve is saturated. The bump is fixed in both the quarter car and the half car, and nothing changes on Case 10.
-16. **Realism.** The paper's sensor choice (integrating the accelerometer) is right. On a Cortex-M4 without FPU the AFC law costs twice the instructions of BSC, so the timing advantage in Table III must come from elsewhere.
-17. **Verdicts.** Read the table. Most claims are reproduced or qualified. Only the computation-time claim isn't supported.
-18. **Tools.** The CAD rig, Blender animation and web lab exist for explanation, not for evidence.
-19. **Conclusions.** The method is sound when the actuator can keep up. The three missing rig numbers are what stand between this study and a quantitative replication.
-
-## Likely questions
-
-- **Isn't the calibration overfitting?** It fits two factors to four numbers from one experiment. That is why we ran a hold-out test, and the hold-out fails for Case B, which we report.
-- **Why is the lumped lag 33 ms when servo valves respond in 3 ms?** It's an effective lag covering the valve, the ESO estimate and filtering. With 3 ms the fit error is 62–69% (the loop is strongly unstable there, so the exact value depends on the platform). The paper itself mentions actuator delays.
-- **Does local instability contradict the paper?** No. Lemma 1 claims boundedness inside the envelope, which still holds; the oscillation is 0.13 mm. It does show that the continuous-time proof doesn't analyse the 50 Hz implementation.
-- **Is the anti-windup AFC still prescribed-performance control?** It deliberately gives the bound up while the actuator can't deliver, and recovers it afterwards at rate 0.5/s. It's a graceful-degradation design, not a guarantee.
-- **Why trust our numbers?** Five implementations agree with each other: Simulink to 1e-16 m, Simscape Multibody to 2 µm, the C law to 10 digits. The v1 numbers are reproduced exactly.
+15. **Extension (AFC-AW).** One extra state lets the envelope widen while the valve is saturated. The bump is fixed in both the quarter car and the half car, and nothing changes on Case 10.
+16. **Novel Contribution (AMC-AFC).** Walk through the three structural repairs: (1) Skyhook damping injection in $u_2$ ($k_v=4.5 \implies c_{\rm sky}=1508\text{ N s/m}$) lifts sprung mass damping ratio from $\zeta=0.005$ to $\zeta=0.38$, suppressing resonance in the 4–8 Hz comfort band; (2) Sampled-data stabilization: tuning $k_3=60.0$ forces discrete spectral radius $\rho=0.9425<1.0$, eliminating the 88 Hz hydraulic limit cycle; (3) Dual-barrier dynamic envelope breathing responds to both actuator saturation excess and physical suspension rattle space ($d_{\max}=80\text{ mm}$).
+17. **Comparative Benchmark.** Walk through the 50 mm bump and ISO Class C plots. Point to the dynamic tyre load ratio: Paper AFC reaches 1.77 (wheel lifts completely off the road), while AMC-AFC caps tyre load at 0.78 (safe contact, no lift-off). Acceleration RMS drops 91% on bumps and 79% on random roads, with valve chattering eliminated (0.7% saturation vs 76.7%).
+18. **Realism.** The paper's sensor choice (integrating the accelerometer) is right. On a Cortex-M4 without FPU the AFC law costs twice the instructions of BSC, so the timing advantage in Table III must come from elsewhere.
+19. **Verdicts.** Read the table. Most claims are reproduced or qualified. Only the computation-time claim isn't supported. AMC-AFC is fully verified.
+20. **Tools.** The CAD rig, Blender animation and web lab exist for explanation, not for evidence.
+21. **Conclusions.** The method is sound when the actuator can keep up. AMC-AFC preserves the model-free simplicity of AFC while solving low damping, rattle space, sampled-data instability, and wheel lift-off.
+22. 
+23. ## Likely questions
+24. 
+25. - **Isn't the calibration overfitting?** It fits two factors to four numbers from one experiment. That is why we ran a hold-out test, and the hold-out fails for Case B, which we report.
+26. - **Why is the lumped lag 33 ms when servo valves respond in 3 ms?** It's an effective lag covering the valve, the ESO estimate and filtering. With 3 ms the fit error is 62–69% (the loop is strongly unstable there, so the exact value depends on the platform). The paper itself mentions actuator delays.
+27. - **Does local instability contradict the paper?** No. Lemma 1 claims boundedness inside the envelope, which still holds; the oscillation is 0.13 mm. It does show that the continuous-time proof doesn't analyse the 50 Hz implementation.
+28. - **Why inject skyhook damping into stage 2 rather than stage 3?** Stage 2 governs the velocity error dynamics $\dot{z}_s - u_1$. Injecting $-k_v \dot{z}_s$ directly augments the physical damping of the sprung mass without disrupting the hydraulic pressure tracking loop.
+29. - **Why set $k_3 = 60.0$ instead of the paper's 216?** At 50 Hz sampling ($T_s = 20\text{ ms}$), the paper's gain $k_3=216$ yields a discrete spectral radius $\rho = 1.2038 > 1.0$, causing an 88 Hz hydraulic limit cycle. Setting $k_3=60.0$ moves the poles strictly inside the unit circle ($\rho = 0.9425 < 1.0$), ensuring discrete asymptotic stability.
+30. - **Is the anti-windup AFC still prescribed-performance control?** It deliberately gives the bound up while the actuator can't deliver, and recovers it afterwards at rate 0.5/s. It's a graceful-degradation design, not a guarantee.
+31. - **Why trust our numbers?** Five implementations agree with each other: Simulink to 1e-16 m, Simscape Multibody to 2 µm, the C law to 10 digits. The v1 numbers are reproduced exactly.

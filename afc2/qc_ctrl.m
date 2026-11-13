@@ -72,7 +72,7 @@ switch C.type
         % Novel Extension: Adaptive Multi-Constraint AFC (AMC-AFC)
         %   1. Skyhook velocity damping injection (kv = 4.5 -> ~1500 N s/m)
         %   2. Dual-constraint envelope relaxation on actuator excess + rattle space
-        %   3. Sampled-data stabilized inner pressure gain (k3 = 120 -> discrete stability)
+        %   3. Sampled-data stabilized inner pressure gain (k3 = 60 -> discrete stability rho = 0.9425 < 1.0)
         C = qc_ctrl('afc', variant);
         C.type = 'amc_afc';
         C.rho = 0;
@@ -82,7 +82,7 @@ switch C.type
         C.d_safe = 0.055; % m, 55 mm threshold before stroke protection activates
         C.d_max = 0.080;  % m, 80 mm physical bump stop limit
         C.kv = 4.5;       % skyhook damping injection gain
-        C.k(3) = 120;     % sampled-data stabilized inner pressure loop gain
+        C.k(3) = 60;      % sampled-data stabilized inner pressure loop gain (rho = 0.9425 < 1.0)
         C.label = sprintf('AMC-AFC (Case %s)', variant);
     case 'skyhook'
         % Classic skyhook comparator with the same inner pressure loop gain

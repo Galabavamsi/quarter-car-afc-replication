@@ -11,7 +11,7 @@ int main(void)
     bsc_t b = {{400, 100, 400}};
     pidc_t q = {3080, 200, 200, 0, 0.02, 5};
     amc_afc_t m = {a, 4.5, 0.5, 5.0, 3.0, 0.055, 0.080, 0.0};
-    m.c.k[2] = 120.0;
+    m.c.k[2] = 60.0;
     real x[6] = {0.005, 0.02, 0.01, -0.03, 0.3, 1e-4};
     printf("self-check: afc %.10g  amc_afc %.10g  bsc %.10g  pid %.10g\n", (double)afc_law(&a, 0.5, x), (double)amc_afc_law(&m, 0.5, x), (double)bsc_law(&b, &p, x, 0.02), (double)pid_law(&q, x));
     const int N = 2000000; volatile real sink = 0; double t0, dt[4];

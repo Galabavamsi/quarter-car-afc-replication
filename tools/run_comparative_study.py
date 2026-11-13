@@ -164,8 +164,8 @@ def simulate(ctrl_name, road_fn, T=20.0, p=PLANT, **kwargs):
             ur = 3080.0 * e + 200.0 * pid_I - 200.0 * x[1]
             m1_e = m1_n
         elif ctrl_name == 'skyhook':
-            # Skyhook spring + damper comparator
-            F_des = -4000.0 * x[1] - 100000.0 * x[0]
+            # Classic Karnopp skyhook damper (csky = 4000 N s/m, ksky = 0) aligned with qc_ctrl('skyhook')
+            F_des = -4000.0 * x[1]
             x5_des = p['kappa'] * F_des / p['A']
             ur = -2.7 * (x[4] - x5_des)
             m1_e = m1_n
@@ -199,9 +199,10 @@ def simulate(ctrl_name, road_fn, T=20.0, p=PLANT, **kwargs):
         elif ctrl_name == 'amc_afc':
             # Novel AMC-AFC: Damping injection + Rattle Space + Sampled-Data Stability
             kv = kwargs.get('kv', 4.5)
-            k3 = kwargs.get('k3', 120.0)
+            k3 = kwargs.get('k3', 60.0)
             k_gain = np.array([25.5, 12.0, k3])
-            mu = ((mu0 - muinf) * np.exp(-alpha * t) + muinf) * (1.0 + rho)
+            mu = (mu0 - muinf) * np.exp(-alpha * t) + muinf
+            mu[0] *= (1.0 + rho)
             
             # Stage 1: displacement
             z1 = np.clip(x[0] / mu[0], -0.99999999, 0.99999999)
@@ -364,7 +365,11 @@ def run_and_plot_all():
     axs[2].axhline(1.0, color='red', ls='-', lw=2, label='Wheel Lift-Off Threshold (Ratio = 1.0)')
     axs[2].set_xlabel('Time (s)')
     axs[2].set_ylabel('Dynamic Tire Load Ratio')
-    axs[2].set_title('Road Holding: Paper AFC Detaches from Road (1.77) vs AMC-AFC Safe Contact (0.42)', fontweight='bold')
+    axs[2].set_title(
+        f"Road Holding: Paper AFC Detaches ({res_bump['afc']['metrics']['tire_load_ratio']:.2f}) vs "
+        f"AMC-AFC Safe Contact ({res_bump['amc_afc']['metrics']['tire_load_ratio']:.2f})",
+        fontweight='bold'
+    )
     axs[2].grid(True, alpha=0.3)
     axs[2].legend(loc='upper right')
 
@@ -392,7 +397,11 @@ def run_and_plot_all():
     axs[1].axhline(-5.0, color='r', ls='--', alpha=0.5)
     axs[1].set_xlabel('Time (s)')
     axs[1].set_ylabel('Valve Voltage (V)')
-    axs[1].set_title('Control Effort: Paper AFC Severe Railing (88.9%) vs AMC-AFC Modulated Control (1.0%)', fontweight='bold')
+    axs[1].set_title(
+        f"Control Effort: Paper AFC Railing ({res_iso['afc']['metrics']['sat_frac']*100:.1f}%) vs "
+        f"AMC-AFC Modulated Control ({res_iso['amc_afc']['metrics']['sat_frac']*100:.1f}%)",
+        fontweight='bold'
+    )
     axs[1].grid(True, alpha=0.3)
     axs[1].legend(loc='upper right')
 
@@ -452,7 +461,7 @@ def run_and_plot_all():
     ax.plot(k3_range, rho_amc, 'b-', lw=2.2, label='AMC-AFC with Damping Injection (kv = 4.5)')
     ax.axhline(1.0, color='k', ls='--', lw=1.5, label='Stability Boundary (\u03c1 = 1.0)')
     ax.axvline(216.0, color='red', ls=':', label='Paper Tuning (k3 = 216 -> \u03c1 = 1.2038 UNSTABLE)')
-    ax.axvline(120.0, color='blue', ls=':', label='Stabilized Tuning (k3 = 120 -> \u03c1 = 1.02, k3 \u2264 80 -> \u03c1 < 1.0)')
+    ax.axvline(60.0, color='blue', ls=':', label='Stabilized Tuning (k3 = 60 -> \u03c1 = 0.9425 < 1.0)')
     ax.set_xlabel('Inner Pressure Gain k_3')
     ax.set_ylabel('Sampled-Data Spectral Radius \u03c1(J_d)')
     ax.set_title('50 Hz Sampled-Data Stability Analysis: Eliminating Hydraulic Destabilization', fontweight='bold')
