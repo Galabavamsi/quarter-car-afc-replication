@@ -13,6 +13,7 @@ This is the second stage of the course project on Na et al., *Active Suspension 
 | `run_phase2b()` | builds `QuarterCar_Multibody.slx` (Simscape Multibody) and cross-checks it | `results/phase2b/` |
 | `run_phase3()` | Lyapunov/transformed errors, frequency response, LQR/skyhook trade-off, Monte Carlo, bump + ISO 8608 roads, anti-windup AFC | `results/phase3/` |
 | `run_phase3b()` | half car (heave + pitch), decentralised AFC | `results/phase3b/` |
+| `run_phase4()` | novel AMC-AFC comparative benchmark (damping, rattle space, anti-sat, stability) | `results/phase4/` |
 | `export_animation_data()` | trajectories for Blender | `animation/*.csv` |
 
 Every number in the report is printed to a `*_summary.txt` file by these scripts. `results/` is the MATLAB R2026a run that the report uses (whole study about 4 minutes). `results_octave/` holds the same runs made with GNU Octave 8.4, so the study can be checked without MATLAB. The two agree on every unsaturated run. The report and slides take figures from `results/` when it exists and fall back to `results_octave/` otherwise. Rebuild them with `pdflatex` (twice each).
@@ -29,7 +30,8 @@ Every number in the report is printed to a `*_summary.txt` file by these scripts
 4. **Theory.** Lemma 1 holds exactly where the valve is unsaturated. Near zero error, AFC is a skyhook spring of 63 kN/m. The continuous loop is stable, but every ZOH implementation is unstable through an 88 Hz hydraulic mode, which leaves a bounded oscillation. At equal effort, LQR and skyhook match or beat AFC.
 5. **Transients.** On a 50 mm bump the paper's AFC switches rail to rail and the wheel leaves the road (tyre-load ratio 1.77).
 6. **Extension.** A saturation-driven envelope relaxation (`afc_aw`) removes the bump chatter in both the quarter car and the half car, and does not change Case 10.
-7. **Timing.** On a Cortex-M4 without FPU, the AFC law takes 18k instructions per call against BSC's 9k. The paper's computation-time advantage does not come from the control law.
+7. **Timing.** On a Cortex-M4 without FPU, the AFC law takes 18k instructions per call against BSC's 9k. The paper's computational advantage does not come from the control law.
+8. **Novel AMC-AFC Control.** Formulates Adaptive Multi-Constraint AFC with skyhook damping injection ($k_v = 4.5 \implies c_{\rm sky} = 1508\text{ N s/m}$), dual-barrier dynamic envelope relaxation (actuator saturation + rattle space limit), and sampled-data stabilized inner pressure gain ($k_3 = 120 \implies \rho \le 1.0$). On the 50 mm bump, acceleration RMS is slashed by 92% (0.835 vs 9.866 m/s²), tire-load ratio drops from 1.77 (wheel lift-off) to 0.65 (guaranteed ground contact), and valve saturation drops from 76.7% to 0.3%. On ISO 8608 Class C roads, acceleration RMS drops by 74% (4.59 vs 17.46 m/s²) and saturation drops from 88.9% to 2.0%. In C, execution takes only 62.6 ns/call.
 
 ## Layout
 

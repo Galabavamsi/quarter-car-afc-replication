@@ -41,7 +41,7 @@ x = nan(6, N + 1);
 x(:, 1) = P.sim.x0;
 u = zeros(N + 1, 1);
 uraw = zeros(N + 1, 1);
-isAfc = any(strcmp(C.type, {'afc', 'afc_aw'}));
+isAfc = any(strcmp(C.type, {'afc', 'afc_aw', 'amc_afc'}));
 zeta = nan(3, N + 1);
 epsv = nan(3, N + 1);
 muv = nan(3, N + 1);
@@ -143,7 +143,11 @@ if ~diverged
     u(end) = u(end - 1);
     uraw(end) = uraw(end - 1);
     if isAfc
-        [~, info] = qc_afc(C, t(end), x(:, end));
+        if strcmp(C.type, 'amc_afc')
+            [~, info] = qc_amc_afc(C, t(end), x(:, end));
+        else
+            [~, info] = qc_afc(C, t(end), x(:, end));
+        end
         zeta(:, end) = info.zeta;
         epsv(:, end) = info.eps;
         muv(:, end) = info.mu;

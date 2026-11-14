@@ -9,6 +9,7 @@ Toolbox-free MATLAB functions, also tested in GNU Octave 8.4. The v1 scripts in 
 | `qc_road.m` | Paper road cases 3-10, sine, (1-cos) bump, ISO 8608 random road (closed-form in t) |
 | `qc_ctrl.m` | Paper controller presets: AFC/BSC/PID Case A and Case B, passive |
 | `qc_afc.m` | AFC law, eqs. (9)-(20); logs unclipped zeta, eps, mu for the stability plots |
+| `qc_amc_afc.m` | Novel Adaptive Multi-Constraint AFC law (skyhook damping + rattle space + anti-saturation + sampled-data stability) |
 | `qc_bsc.m` | Model-based backstepping comparator (paper Sec. IV-A) |
 | `qc_controller.m` | Dispatcher (PID with conditional integration lives here) |
 | `qc_simulate.m` | 50 Hz ZOH controller + RK4 plant, voltage rail, divergence guard |
@@ -22,7 +23,7 @@ Toolbox-free MATLAB functions, also tested in GNU Octave 8.4. The v1 scripts in 
 | `qc_sine_gain.m` | Empirical frequency response of the sampled nonlinear loop (sine roads, LS fit) |
 | `qc_randn.m`, `qc_kronecker.m` | Reproducible noise and Monte Carlo samples (identical in MATLAB and Octave) |
 
-Controllers in `qc_ctrl`: `afc` (A/B), `afc_aw` (extension: saturation-driven envelope relaxation), `bsc`, `pid`, `skyhook`, `passive`. LQR comes from `qc_lqr_design`.
+Controllers in `qc_ctrl`: `afc` (A/B), `afc_aw` (anti-windup extension), `amc_afc` (novel adaptive multi-constraint AFC), `bsc`, `pid`, `skyhook`, `passive`. LQR comes from `qc_lqr_design`.
 Sensing modes in `qc_simulate(..., struct('sensing', struct('mode', m)))`: `ideal`, `diff`, `accint`, `kalman`.
 | `qc_style.m`, `qc_save_fig.m`, `qc_write_csv.m` | Plot style, PDF/PNG export, CSV writer |
 

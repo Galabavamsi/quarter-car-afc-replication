@@ -18,6 +18,16 @@ real afc_law(const afc_t *c, real t, const real x[6]);
 real bsc_law(const bsc_t *c, const plant_t *p, const real x[6], real zr);
 real pid_law(pidc_t *c, const real x[6]);
 
+/* Novel Adaptive Multi-Constraint AFC (AMC-AFC) */
+typedef struct {
+    afc_t c;
+    real kv;          /* skyhook damping injection gain */
+    real ell, gam, gam_d;
+    real d_safe, d_max;
+    real rho;
+} amc_afc_t;
+real amc_afc_law(amc_afc_t *c, real t, const real x[6]);
+
 /* AFC with the envelopes advanced recursively once per sample,
  * mu_{k+1} = mu_inf + (mu_k - mu_inf) * exp(-alpha*Ts), so no exp() at run time.
  * Call afc_fast_init once, then afc_fast_step every sample. */
